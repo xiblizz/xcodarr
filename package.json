@@ -1,0 +1,24 @@
+{
+  "name": "transcodarr",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node build"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5.3.2",
+    "@sveltejs/kit": "^2.43.5",
+    "svelte": "^5.39.6",
+    "vite": "^7.1.7"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  },
+  "keywords": ["media", "transcoding", "ffmpeg", "file-manager"],
+  "author": "",
+  "license": "ISC",
+  "description": "SvelteKit Media Manager with Smart GPU/CPU FFMPEG Transcoding"
+}
