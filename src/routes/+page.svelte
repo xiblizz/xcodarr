@@ -54,8 +54,13 @@
 
 <div class="app">
   <header>
-    <h1>Transcodarr Media Manager</h1>
-    <p>Current path: {currentPath}</p>
+    <h1>transcodarr</h1>
+    <nav class="breadcrumb">
+      {#each currentPath.split('/').filter(part => part) as part, index}
+        {#if index > 0}<span class="breadcrumb-separator">/</span>{/if}
+        <span class="breadcrumb-item">{part}</span>
+      {/each}
+    </nav>
   </header>
 
   <div class="main-content">
@@ -96,21 +101,36 @@
   header {
     background: #1f2937;
     color: #f9fafb;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     border-bottom: 2px solid #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   header h1 {
-    margin: 0 0 0.5rem 0;
+    margin: 0;
     color: #f9fafb;
+    font-size: 1.25rem;
+    font-weight: 500;
   }
 
-  header p {
-    margin: 0;
-    opacity: 0.8;
-    font-family: monospace;
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    color: #9ca3af;
+    font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  .breadcrumb-item {
     color: #d1d5db;
+  }
+
+  .breadcrumb-separator {
+    margin: 0 0.5rem;
+    color: #6b7280;
   }
 
   .main-content {

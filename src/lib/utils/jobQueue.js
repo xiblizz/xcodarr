@@ -129,15 +129,30 @@ class JobQueue {
 		const process = this.runningJobs.get(jobId);
 		if (process) {
 			console.log(`Stopping job ${jobId}`);
-			process.kill('SIGTERM');
-			this.runningJobs.delete(jobId);
 			
-			await updateJob(jobId, {
-				status: 'cancelled',
-				completed_at: new Date().toISOString()
-			});
+			// Additional safety check - ensure process has kill method
+			if (typeof process.kill !== 'function') {
+				console.error(`Error stopping job: process.kill is not a function. Process:`, process);
+				// Remove invalid process from map
+				this.runningJobs.delete(jobId);
+				return false;
+			}
 			
-			return true;
+			try {
+				process.kill('SIGTERM');
+				this.runningJobs.delete(jobId);
+				
+				await updateJob(jobId, {
+					status: 'cancelled',
+					completed_at: new Date().toISOString()
+				});
+				
+				return true;
+			} catch (error) {
+				console.error(`Error killing process for job ${jobId}:`, error);
+				this.runningJobs.delete(jobId);
+				return false;
+			}
 		}
 		
 		// If job is not running but is queued, mark as cancelled
