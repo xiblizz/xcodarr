@@ -243,28 +243,28 @@
   }
 
   .stat.running {
-    background: #d1ecf1;
-    color: #0c5460;
+    background: #1e3a8a;
+    color: #93c5fd;
   }
 
   .stat.queued {
-    background: #fff3cd;
-    color: #856404;
+    background: #d97706;
+    color: #fbbf24;
   }
 
   .stat.completed {
-    background: #d4edda;
-    color: #155724;
+    background: #065f46;
+    color: #86efac;
   }
 
   .stat.failed {
-    background: #f8d7da;
-    color: #721c24;
+    background: #991b1b;
+    color: #fca5a5;
   }
 
   .no-jobs {
     text-align: center;
-    color: #6c757d;
+    color: #a0aec0;
     padding: 2rem;
   }
 
@@ -274,16 +274,16 @@
   }
 
   .job-item {
-    border: 1px solid #dee2e6;
+    border: 1px solid #4b5563;
     border-radius: 4px;
     margin-bottom: 1rem;
     padding: 1rem;
-    background: #f8f9fa;
+    background: #374151;
   }
 
   .job-item.running {
-    border-color: #007bff;
-    background: #e3f2fd;
+    border-color: #0d6efd;
+    background: #1e3a8a;
   }
 
   .job-header {
@@ -337,12 +337,12 @@
     border-radius: 3px;
     font-size: 0.75rem;
     font-weight: 600;
-    background: #6c757d;
+    background: #6b7280;
     color: white;
   }
 
   .processor-badge.gpu {
-    background: #28a745;
+    background: #059669;
   }
 
   .progress-section {
@@ -355,19 +355,20 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.85rem;
-    color: #6c757d;
+    color: #a0aec0;
   }
 
   .completion-info {
     display: flex;
     gap: 1rem;
     font-size: 0.9rem;
+    color: #e0e0e0;
   }
 
   .error-message {
-    color: #dc3545;
+    color: #f87171;
     font-size: 0.9rem;
-    background: #f8d7da;
+    background: #991b1b;
     padding: 0.5rem;
     border-radius: 3px;
   }

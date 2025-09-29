@@ -34,13 +34,34 @@
 
   function handleFileClick(file, event) {
     if (event.ctrlKey || event.metaKey) {
-      // Multi-select
+      // Multi-select with Ctrl/Cmd
       if (selectedFiles.includes(file)) {
         selectedFiles = selectedFiles.filter(f => f !== file);
       } else {
         selectedFiles = [...selectedFiles, file];
       }
+    } else if (event.shiftKey && selectedFiles.length > 0) {
+      // Range select with Shift
+      const lastSelectedFile = selectedFiles[selectedFiles.length - 1];
+      const lastIndex = files.indexOf(lastSelectedFile);
+      const currentIndex = files.indexOf(file);
+      
+      if (lastIndex !== -1 && currentIndex !== -1) {
+        const start = Math.min(lastIndex, currentIndex);
+        const end = Math.max(lastIndex, currentIndex);
+        const rangeFiles = files.slice(start, end + 1);
+        
+        // Merge with existing selection
+        const newSelection = [...selectedFiles];
+        rangeFiles.forEach(rangeFile => {
+          if (!newSelection.includes(rangeFile)) {
+            newSelection.push(rangeFile);
+          }
+        });
+        selectedFiles = newSelection;
+      }
     } else {
+      // Single select
       selectedFiles = [file];
     }
     dispatch('fileselect', { files: selectedFiles });
@@ -179,6 +200,21 @@
       closeContextMenu();
     }
   }
+
+  function selectAllFiles() {
+    selectedFiles = [...files];
+    dispatch('fileselect', { files: selectedFiles });
+  }
+
+  function clearSelection() {
+    selectedFiles = [];
+    dispatch('fileselect', { files: selectedFiles });
+  }
+
+  function selectVideoFiles() {
+    selectedFiles = files.filter(file => file.metadata?.video_codec && file.type !== 'directory');
+    dispatch('fileselect', { files: selectedFiles });
+  }
 </script>
 
 <svelte:window on:click={handleClick} />
@@ -191,6 +227,19 @@
     <button class="btn btn-secondary" on:click={() => dispatch('refresh')}>
       🔄 Refresh
     </button>
+    
+    <div class="selection-controls">
+      <button class="btn btn-secondary btn-sm" on:click={selectAllFiles}>
+        Select All
+      </button>
+      <button class="btn btn-secondary btn-sm" on:click={selectVideoFiles}>
+        Select Videos
+      </button>
+      <button class="btn btn-secondary btn-sm" on:click={clearSelection} disabled={selectedFiles.length === 0}>
+        Clear ({selectedFiles.length})
+      </button>
+    </div>
+    
     {#if clipboard && clipboardOperation}
       <button class="btn btn-primary" on:click={pasteFile}>
         📋 Paste ({clipboardOperation})
@@ -275,24 +324,36 @@
 
 <style>
   .file-manager {
-    background: white;
+    background: #2d3748;
     border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     overflow: hidden;
   }
 
   .toolbar {
     padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid #495057;
     display: flex;
     gap: 0.5rem;
     align-items: center;
-    background: #f8f9fa;
+    background: #374151;
+    flex-wrap: wrap;
+  }
+
+  .selection-controls {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+  }
+
+  .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
   }
 
   .file-count {
     margin-left: auto;
-    color: #6c757d;
+    color: #a0aec0;
     font-size: 0.9rem;
   }
 
@@ -310,7 +371,7 @@
   }
 
   .file-row.selected {
-    background: #e3f2fd !important;
+    background: #1e3a8a !important;
   }
 
   .file-name {
@@ -325,14 +386,17 @@
 
   .rename-input {
     min-width: 200px;
+    background: #374151;
+    color: #e0e0e0;
+    border: 1px solid #4b5563;
   }
 
   .context-menu {
     position: fixed;
-    background: white;
-    border: 1px solid #ccc;
+    background: #374151;
+    border: 1px solid #4b5563;
     border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     z-index: 1000;
     min-width: 120px;
   }
@@ -341,19 +405,20 @@
     padding: 0.5rem 1rem;
     cursor: pointer;
     font-size: 0.9rem;
+    color: #e0e0e0;
   }
 
   .context-menu-item:hover {
-    background: #f8f9fa;
+    background: #4b5563;
   }
 
   .context-menu-item.danger {
-    color: #dc3545;
+    color: #f87171;
   }
 
   .context-menu-divider {
     height: 1px;
-    background: #dee2e6;
+    background: #4b5563;
     margin: 0.25rem 0;
   }
 </style>

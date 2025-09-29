@@ -8,8 +8,7 @@
   let codec = 'x264';
   let cqValue = 23;
   let isGpuAvailable = false;
-  let forceGpu = false;
-  let forceCpu = false;
+  let processorChoice = 'auto'; // 'auto', 'gpu', 'cpu'
 
   // Check GPU availability on mount
   import { onMount } from 'svelte';
@@ -46,8 +45,8 @@
           files: videoFiles.map(f => f.path),
           codec,
           cq: cqValue,
-          forceGpu,
-          forceCpu
+          forceGpu: processorChoice === 'gpu',
+          forceCpu: processorChoice === 'cpu'
         })
       });
 
@@ -66,9 +65,9 @@
   }
 
   function getEstimatedProcessor() {
-    if (forceCpu) return 'CPU';
-    if (forceGpu && isGpuAvailable) return 'GPU';
-    if (isGpuAvailable && !forceCpu) return 'GPU';
+    if (processorChoice === 'cpu') return 'CPU';
+    if (processorChoice === 'gpu' && isGpuAvailable) return 'GPU';
+    if (processorChoice === 'auto' && isGpuAvailable) return 'GPU';
     return 'CPU';
   }
 
@@ -120,12 +119,16 @@
         <div class="option-group">
           <label>Processor:</label>
           <div class="processor-options">
-            <label class="checkbox-label">
-              <input type="checkbox" bind:checked={forceGpu} disabled={!isGpuAvailable} />
+            <label class="radio-label">
+              <input type="radio" bind:group={processorChoice} value="auto" />
+              Auto (Use GPU if available)
+            </label>
+            <label class="radio-label" class:disabled={!isGpuAvailable}>
+              <input type="radio" bind:group={processorChoice} value="gpu" disabled={!isGpuAvailable} />
               Force GPU {isGpuAvailable ? '(Available)' : '(Not Available)'}
             </label>
-            <label class="checkbox-label">
-              <input type="checkbox" bind:checked={forceCpu} />
+            <label class="radio-label">
+              <input type="radio" bind:group={processorChoice} value="cpu" />
               Force CPU
             </label>
           </div>
@@ -208,7 +211,7 @@
     gap: 0.25rem;
   }
 
-  .checkbox-label {
+  .radio-label {
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -216,20 +219,26 @@
     cursor: pointer;
   }
 
-  .checkbox-label input[type="checkbox"]:disabled {
+  .radio-label.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .radio-label input[type="radio"]:disabled {
     cursor: not-allowed;
   }
 
   .encoding-preview {
-    background: #f8f9fa;
+    background: #374151;
     padding: 1rem;
     border-radius: 4px;
-    border: 1px solid #dee2e6;
+    border: 1px solid #4b5563;
   }
 
   .preview-item {
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
+    color: #e0e0e0;
   }
 
   .preview-item:last-child {
@@ -241,12 +250,12 @@
     border-radius: 3px;
     font-size: 0.8rem;
     font-weight: 600;
-    background: #6c757d;
+    background: #6b7280;
     color: white;
   }
 
   .processor-badge.gpu {
-    background: #28a745;
+    background: #059669;
   }
 
   .actions {

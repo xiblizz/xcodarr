@@ -94,20 +94,23 @@
   }
 
   header {
-    background: #333;
-    color: white;
+    background: #1f2937;
+    color: #f9fafb;
     padding: 1rem;
     margin-bottom: 1rem;
+    border-bottom: 2px solid #374151;
   }
 
   header h1 {
     margin: 0 0 0.5rem 0;
+    color: #f9fafb;
   }
 
   header p {
     margin: 0;
     opacity: 0.8;
     font-family: monospace;
+    color: #d1d5db;
   }
 
   .main-content {
@@ -122,7 +125,7 @@
   }
 
   .job-section {
-    border-left: 2px solid #eee;
+    border-left: 2px solid #4b5563;
     padding-left: 1rem;
   }
 
@@ -133,7 +136,7 @@
     
     .job-section {
       border-left: none;
-      border-top: 2px solid #eee;
+      border-top: 2px solid #4b5563;
       padding-left: 0;
       padding-top: 1rem;
     }
