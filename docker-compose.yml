@@ -1,35 +1,34 @@
-version: '3.8'
-
+name: transcodarr
 services:
-  transcodarr:
-    build: .
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./data:/data
-      - ./media:/media
-    environment:
-      - NODE_ENV=production
-      - MEDIA_DIR=/media
-      - MAX_CONCURRENT_JOBS=1
-    restart: unless-stopped
+    transcodarr:
+        build: .
+        ports:
+            - '3000:3000'
+        volumes:
+            - ./data:/data
+            - ./media:/media
+        environment:
+            - NODE_ENV=production
+            - MEDIA_DIR=/media
+            - MAX_CONCURRENT_JOBS=1
+        restart: unless-stopped
 
-  transcodarr-gpu:
-    build: .
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./data:/data
-      - ./media:/media
-    environment:
-      - NODE_ENV=production
-      - MEDIA_DIR=/media
-      - MAX_CONCURRENT_JOBS=1
-    restart: unless-stopped
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    transcodarr-gpu:
+        build: .
+        ports:
+            - '3000:3000'
+        volumes:
+            - ./data:/data
+            - ./media:/media
+        environment:
+            - NODE_ENV=production
+            - MEDIA_DIR=/media
+            - MAX_CONCURRENT_JOBS=1
+        restart: unless-stopped
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: 1
+                          capabilities: [gpu]
