@@ -324,19 +324,20 @@
 
 <style>
   .file-manager {
-    background: #2d3748;
-    border-radius: 4px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    background: var(--panel);
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     overflow: hidden;
+    border: 1px solid var(--border);
   }
 
   .toolbar {
     padding: 1rem;
-    border-bottom: 1px solid #495057;
+    border-bottom: 1px solid var(--border);
     display: flex;
     gap: 0.5rem;
     align-items: center;
-    background: #374151;
+    background: linear-gradient(180deg, #14161b, #121318);
     flex-wrap: wrap;
   }
 
@@ -366,13 +367,9 @@
     cursor: pointer;
   }
 
-  .file-row:hover {
-    background: #f8f9fa;
-  }
+  .file-row:hover { background: rgba(255,255,255,0.03); }
 
-  .file-row.selected {
-    background: #1e3a8a !important;
-  }
+  .file-row.selected { background: #111a2c !important; }
 
   .file-name {
     display: flex;
@@ -384,41 +381,22 @@
     font-size: 1.2rem;
   }
 
-  .rename-input {
-    min-width: 200px;
-    background: #374151;
-    color: #e0e0e0;
-    border: 1px solid #4b5563;
-  }
+  .rename-input { min-width: 200px; background: var(--panel); color: var(--fg); border: 1px solid var(--border); }
 
   .context-menu {
     position: fixed;
-    background: #374151;
-    border: 1px solid #4b5563;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     z-index: 1000;
-    min-width: 120px;
+    min-width: 140px;
   }
 
-  .context-menu-item {
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-    color: #e0e0e0;
-  }
+  .context-menu-item { padding: 0.5rem 1rem; cursor: pointer; font-size: 0.9rem; color: var(--fg); }
+  .context-menu-item:hover { background: rgba(255,255,255,0.03); }
 
-  .context-menu-item:hover {
-    background: #4b5563;
-  }
+  .context-menu-item.danger { color: #fecaca; }
 
-  .context-menu-item.danger {
-    color: #f87171;
-  }
-
-  .context-menu-divider {
-    height: 1px;
-    background: #4b5563;
-    margin: 0.25rem 0;
-  }
+  .context-menu-divider { height: 1px; background: var(--border); margin: 0.25rem 0; }
 </style>

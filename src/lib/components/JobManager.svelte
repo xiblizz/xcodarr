@@ -75,6 +75,21 @@
     }
   }
 
+  async function forceStopAndRemove(jobId) {
+    if (!confirm('Force kill the process and remove the job?')) return;
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/force-stop`, { method: 'POST' });
+      if (res.ok) {
+        dispatch('job-update');
+      } else {
+        const e = await res.json().catch(() => ({}));
+        alert('Failed to force stop/remove job' + (e.error ? `: ${e.error}` : ''));
+      }
+    } catch (err) {
+      alert('Error force stopping/removing job: ' + err.message);
+    }
+  }
+
   function getProgressPercentage(job) {
     if (job.status === 'completed') return 100;
     if (job.status === 'failed' || job.status === 'cancelled') return 0;
@@ -129,14 +144,23 @@
                   </span>
                 </div>
                 <div class="job-actions">
-                  {#if job.status === 'running' || job.status === 'queued'}
+                  {#if job.status === 'running'}
                     <button class="btn btn-sm btn-danger" on:click={() => stopJob(job.id)}>
                       Stop
                     </button>
-                  {/if}
-                  {#if job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled'}
+                    <button class="btn btn-sm btn-secondary" title="Force kill and remove" on:click={() => forceStopAndRemove(job.id)}>
+                      Force stop & remove
+                    </button>
+                  {:else if job.status === 'queued'}
+                    <button class="btn btn-sm btn-danger" on:click={() => stopJob(job.id)}>
+                      Cancel
+                    </button>
                     <button class="btn btn-sm btn-secondary" on:click={() => deleteJob(job.id)}>
-                      Delete
+                      Remove
+                    </button>
+                  {:else}
+                    <button class="btn btn-sm btn-secondary" on:click={() => deleteJob(job.id)}>
+                      Remove
                     </button>
                   {/if}
                 </div>
@@ -222,6 +246,8 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    border-top-left-radius: .75rem;
+    border-top-right-radius: .75rem;
   }
 
   .card-header h3 {
@@ -243,22 +269,22 @@
   }
 
   .stat.running {
-    background: #1e3a8a;
-    color: #93c5fd;
+    background: rgba(105,136,255,0.12);
+    color: #c7d3ff;
   }
 
   .stat.queued {
-    background: #d97706;
-    color: #fbbf24;
+    background: rgba(245,158,11,0.12);
+    color: #facc15;
   }
 
   .stat.completed {
-    background: #065f46;
+    background: rgba(34,197,94,0.12);
     color: #86efac;
   }
 
   .stat.failed {
-    background: #991b1b;
+    background: rgba(239,68,68,0.12);
     color: #fca5a5;
   }
 
@@ -274,17 +300,14 @@
   }
 
   .job-item {
-    border: 1px solid #4b5563;
-    border-radius: 4px;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
     margin-bottom: 1rem;
     padding: 1rem;
-    background: #374151;
+    background: var(--panel);
   }
 
-  .job-item.running {
-    border-color: #0d6efd;
-    background: #1e3a8a;
-  }
+  .job-item.running { border-color: rgba(105,136,255,0.5); background: #111a2c; }
 
   .job-header {
     display: flex;
@@ -351,31 +374,11 @@
     gap: 0.5rem;
   }
 
-  .progress-info {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.85rem;
-    color: #a0aec0;
-  }
+  .progress-info { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); }
 
-  .completion-info {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.9rem;
-    color: #e0e0e0;
-  }
+  .completion-info { display: flex; gap: 1rem; font-size: 0.9rem; color: var(--fg); }
 
-  .error-message {
-    color: #f87171;
-    font-size: 0.9rem;
-    background: #991b1b;
-    padding: 0.5rem;
-    border-radius: 3px;
-  }
+  .error-message { color: #fecaca; font-size: 0.9rem; background: rgba(239,68,68,0.12); padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(239,68,68,0.35); }
 
-  .job-timestamps {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
+  .job-timestamps { display: flex; flex-direction: column; gap: 0.25rem; }
 </style>

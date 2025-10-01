@@ -46,6 +46,10 @@
   function handleFileSelect(event) {
     selectedFiles = event.detail.files;
   }
+
+  $: hasVideoSelection = selectedFiles.some(
+    (f) => f && f.type !== 'directory' && f.metadata && f.metadata.video_codec
+  );
 </script>
 
 <svelte:head>
@@ -74,7 +78,7 @@
         on:refresh={loadFiles}
       />
       
-      {#if selectedFiles.length > 0}
+      {#if hasVideoSelection}
         <EncodingToolbar 
           {selectedFiles}
           on:encode-start={loadJobs}
@@ -99,66 +103,35 @@
   }
 
   header {
-    background: #1f2937;
-    color: #f9fafb;
+    color: var(--fg);
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
-    border-bottom: 2px solid #374151;
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
-  header h1 {
-    margin: 0;
-    color: #f9fafb;
-    font-size: 1.25rem;
-    font-weight: 500;
-  }
+  header h1 { margin: 0; color: var(--fg); font-size: 1.25rem; font-weight: 600; letter-spacing: 0.2px; }
 
-  .breadcrumb {
-    display: flex;
-    align-items: center;
-    font-size: 0.875rem;
-    color: #9ca3af;
-    font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, "Liberation Mono", Menlo, monospace;
-  }
+  .breadcrumb { display: flex; align-items: center; font-size: 0.875rem; color: var(--muted); font-family: ui-monospace, SFMono-Regular, "Cascadia Code", Consolas, "Liberation Mono", Menlo, monospace; }
 
-  .breadcrumb-item {
-    color: #d1d5db;
-  }
+  .breadcrumb-item { color: var(--fg); }
 
-  .breadcrumb-separator {
-    margin: 0 0.5rem;
-    color: #6b7280;
-  }
+  .breadcrumb-separator { margin: 0 0.5rem; color: var(--muted); }
 
-  .main-content {
-    display: grid;
-    grid-template-columns: 1fr 400px;
-    gap: 1rem;
-    flex: 1;
-  }
+  .main-content { display: grid; grid-template-columns: 1fr 420px; gap: 1rem; flex: 1; }
 
   .file-section {
     min-height: 0;
   }
 
-  .job-section {
-    border-left: 2px solid #4b5563;
-    padding-left: 1rem;
-  }
+  .job-section { padding-left: 0; }
 
   @media (max-width: 768px) {
     .main-content {
       grid-template-columns: 1fr;
     }
     
-    .job-section {
-      border-left: none;
-      border-top: 2px solid #4b5563;
-      padding-left: 0;
-      padding-top: 1rem;
-    }
+    .job-section { border-left: none; border-top: 2px solid var(--border); padding-left: 0; padding-top: 1rem; }
   }
 </style>

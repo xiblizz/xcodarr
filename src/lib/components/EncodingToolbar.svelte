@@ -117,6 +117,7 @@
           </div>
 
           <div class="option-group">
+            <!-- svelte-ignore a11y_label_has_associated_control -->
             <label>Processor:</label>
             <div class="processor-options">
               <label class="radio-label">
@@ -188,67 +189,28 @@
   .option-group label {
     font-weight: 500;
     font-size: 0.875rem;
-    color: #374151;
+    color: var(--muted);
   }
 
-  .form-control {
-    padding: 0.375rem 0.75rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    background-color: white;
-    transition: border-color 0.15s ease-in-out;
-  }
-
-  .form-control:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
+  .form-control { padding: 0.5rem 0.65rem; border: 1px solid var(--border); border-radius: 0.5rem; font-size: 0.875rem; background: var(--panel); color: var(--fg); }
+  .form-control:focus { outline: none; border-color: rgba(105,136,255,0.7); box-shadow: 0 0 0 3px rgba(105,136,255,0.15); }
 
   .range-input {
     -webkit-appearance: none;
     appearance: none;
-    background: transparent;
+    /* background: transparent; */
     cursor: pointer;
   }
 
-  .range-input::-webkit-slider-track {
-    background: #e5e7eb;
-    height: 4px;
-    border-radius: 2px;
-  }
+  .range-input::-webkit-slider-track { background: #26272b; height: 4px; border-radius: 2px; }
 
-  .range-input::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    background: #3b82f6;
-    height: 16px;
-    width: 16px;
-    border-radius: 50%;
-    cursor: pointer;
-  }
+  .range-input::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; background: #6988FF; height: 16px; width: 16px; border-radius: 50%; cursor: pointer; border: 1px solid rgba(105,136,255,0.5); }
 
-  .range-input::-moz-range-track {
-    background: #e5e7eb;
-    height: 4px;
-    border-radius: 2px;
-    border: none;
-  }
+  .range-input::-moz-range-track { background: #26272b; height: 4px; border-radius: 2px; border: none; }
 
-  .range-input::-moz-range-thumb {
-    background: #3b82f6;
-    height: 16px;
-    width: 16px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
-  }
+  .range-input::-moz-range-thumb { background: #6988FF; height: 16px; width: 16px; border-radius: 50%; cursor: pointer; border: 1px solid rgba(105,136,255,0.5); }
 
-  .cq-value {
-    font-weight: 600;
-    color: #3b82f6;
-  }
+  .cq-value { font-weight: 600; color: #6988FF; }
 
   .processor-options {
     display: flex;
@@ -256,15 +218,7 @@
     flex-wrap: wrap;
   }
 
-  .radio-label {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-weight: normal !important;
-    cursor: pointer;
-    font-size: 0.75rem !important;
-    color: #6b7280 !important;
-  }
+  .radio-label { display: flex; align-items: center; gap: 0.25rem; font-weight: normal !important; cursor: pointer; font-size: 0.8rem !important; color: var(--muted) !important; }
 
   .radio-label.disabled {
     opacity: 0.5;
@@ -286,39 +240,11 @@
     margin-top: 0.5rem;
   }
 
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    border: 1px solid transparent;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    transition: all 0.15s ease-in-out;
-    text-decoration: none;
-  }
-
-  .btn-ghost {
-    color: #374151;
-    background-color: transparent;
-    border-color: #d1d5db;
-  }
-
-  .btn-ghost:hover:not(:disabled) {
-    background-color: #f9fafb;
-    border-color: #9ca3af;
-  }
-
-  .btn-ghost:active:not(:disabled) {
-    background-color: #f3f4f6;
-  }
-
-  .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 500; border: 1px solid var(--border); border-radius: 0.5rem; cursor: pointer; transition: all 0.15s ease-in-out; text-decoration: none; background: var(--panel); color: var(--fg); }
+  .btn-ghost { color: var(--fg); background-color: transparent; border-color: var(--border); }
+  .btn-ghost:hover:not(:disabled) { background-color: rgba(255,255,255,0.03); border-color: #2f3035; }
+  .btn-ghost:active:not(:disabled) { background-color: rgba(255,255,255,0.05); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .encode-btn {
     font-size: 0.875rem;
