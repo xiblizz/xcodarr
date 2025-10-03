@@ -2,42 +2,58 @@ import { spawn } from 'child_process'
 import fs from 'fs/promises'
 import path from 'path'
 
-let gpuAvailable = null
+let gpuInfoCache = null
 
+// Returns an object describing available hardware encoders. This is more useful
+// than a boolean so callers can choose between HW encoders (VideoToolbox vs NVENC).
 export async function checkGpuAvailability() {
-    if (gpuAvailable !== null) {
-        return gpuAvailable
-    }
+    if (gpuInfoCache !== null) return gpuInfoCache
 
-    // Check for NVIDIA GPU and NVENC availability in ffmpeg
-    const hasNvidia = await new Promise((resolve) => {
-        const nvidia = spawn('nvidia-smi', ['-L'])
-        nvidia.on('close', (code) => resolve(code === 0))
-        nvidia.on('error', () => resolve(false))
-    })
-
-    if (!hasNvidia) {
-        gpuAvailable = false
-        return gpuAvailable
-    }
-
-    const hasNvenc = await new Promise((resolve) => {
+    // Probe ffmpeg encoders list
+    const encodersOut = await new Promise((resolve) => {
         const ff = spawn('ffmpeg', ['-hide_banner', '-v', 'error', '-encoders'])
         let out = ''
         ff.stdout?.on('data', (d) => (out += d.toString()))
         ff.stderr?.on('data', (d) => (out += d.toString()))
-        ff.on('close', () => {
-            resolve(/\b(h264_nvenc|hevc_nvenc)\b/.test(out))
-        })
-        ff.on('error', () => resolve(false))
+        ff.on('close', () => resolve(out))
+        ff.on('error', () => resolve(''))
     })
 
-    gpuAvailable = hasNvenc
-    return gpuAvailable
+    const hasNvenc = /\b(h264_nvenc|hevc_nvenc)\b/.test(encodersOut)
+    // VideoToolbox encoder names in ffmpeg are h264_videotoolbox and hevc_videotoolbox
+    const hasVideoToolbox = /\b(h264_videotoolbox|hevc_videotoolbox)\b/.test(encodersOut)
+
+    // On macOS prefer VideoToolbox when available
+    const isMac = process.platform === 'darwin'
+    let preferred = null
+    if (isMac && hasVideoToolbox) preferred = 'videotoolbox'
+    else if (hasNvenc) preferred = 'nvenc'
+
+    gpuInfoCache = {
+        nvenc: hasNvenc,
+        videotoolbox: hasVideoToolbox,
+        preferred,
+    }
+
+    return gpuInfoCache
 }
 
-export function getCodecSettings(codec, useGpu, cq) {
-    if (useGpu) {
+export function getCodecSettings(codec, hwEncoder, cq) {
+    // hwEncoder can be: 'videotoolbox', 'nvenc', or null
+    if (hwEncoder === 'videotoolbox') {
+        if (codec === 'x264') {
+            return {
+                videoCodec: 'h264_videotoolbox',
+                // videotoolbox typically uses bitrate/quality options differently; keep simple
+                codecOptions: ['-qscale', cq.toString()],
+            }
+        } else {
+            return {
+                videoCodec: 'hevc_videotoolbox',
+                codecOptions: ['-qscale', cq.toString()],
+            }
+        }
+    } else if (hwEncoder === 'nvenc') {
         if (codec === 'x264') {
             return {
                 videoCodec: 'h264_nvenc',
@@ -50,6 +66,7 @@ export function getCodecSettings(codec, useGpu, cq) {
             }
         }
     } else {
+        // Software encoders
         if (codec === 'x264') {
             return {
                 videoCodec: 'libx264',
@@ -76,10 +93,10 @@ export function createTempPath(outputPath) {
 }
 
 export function encodeVideo(jobData, onProgress, onComplete) {
-    const { inputPath, outputPath, codec, cq, useGpu } = jobData
+    const { inputPath, outputPath, codec, cq, hwEncoder } = jobData
 
     const tempOutputPath = createTempPath(outputPath)
-    const { videoCodec, codecOptions } = getCodecSettings(codec, useGpu, cq)
+    const { videoCodec, codecOptions } = getCodecSettings(codec, hwEncoder, cq)
 
     // Build FFmpeg command
     const ffmpegArgs = [

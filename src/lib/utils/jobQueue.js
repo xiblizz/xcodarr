@@ -60,15 +60,18 @@ class JobQueue {
                 started_at: new Date().toISOString(),
             })
 
-            // Determine if we should use GPU
-            const gpuAvailable = await checkGpuAvailability()
-            let useGpu = job.using_gpu && gpuAvailable
+            // Determine available hardware encoders
+            const gpuInfo = await checkGpuAvailability()
+            // Choose hw encoder: prefer job.using_gpu and available preferred encoder
+            let hwEncoder = null
+            if (job.using_gpu) {
+                if (gpuInfo.preferred) hwEncoder = gpuInfo.preferred
+                else if (gpuInfo.nvenc) hwEncoder = 'nvenc'
+            }
 
-            // If GPU was requested but not available, fall back to CPU
-            if (job.using_gpu && !gpuAvailable) {
+            if (job.using_gpu && !hwEncoder) {
                 console.log(`Job ${jobId}: GPU requested but not available, falling back to CPU`)
                 await updateJob(jobId, { using_gpu: 0 })
-                useGpu = false
             }
 
             const jobData = {
@@ -76,7 +79,7 @@ class JobQueue {
                 outputPath: job.output_path,
                 codec: job.codec,
                 cq: job.cq,
-                useGpu,
+                hwEncoder,
             }
 
             const process = encodeVideo(
