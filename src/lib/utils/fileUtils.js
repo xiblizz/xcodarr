@@ -2,14 +2,33 @@ import fs from 'fs/promises'
 import path from 'path'
 import { spawn } from 'child_process'
 
-const MEDIA_DIR = process.env.MEDIA_DIR || '/media'
+// Allow MEDIA_DIR to be set via environment (loaded from .env when running locally).
+// If not set, default to a `media` directory next to project root for local development.
+const MEDIA_DIR = process.env.MEDIA_DIR || path.resolve(process.cwd(), 'media')
+
+// Exported for tests and runtime checks
+export function getResolvedMediaDir() {
+    return MEDIA_DIR
+}
 
 // Security: Validate that paths stay within the media directory
 export function validatePath(targetPath) {
-    const resolvedPath = path.resolve(targetPath)
-    const resolvedMediaDir = path.resolve(MEDIA_DIR)
+    // If a relative path is supplied, treat it as relative to MEDIA_DIR
+    let resolvedPath
+    if (!path.isAbsolute(targetPath)) {
+        resolvedPath = path.resolve(MEDIA_DIR, targetPath)
+    } else {
+        resolvedPath = path.resolve(targetPath)
+    }
 
-    if (!resolvedPath.startsWith(resolvedMediaDir)) {
+    const resolvedMediaDir = path.resolve(MEDIA_DIR)
+    const legacyMediaDir = path.resolve('/media')
+
+    const isUnder = (dir) => resolvedPath === dir || resolvedPath.startsWith(dir + path.sep)
+
+    // Allow paths under the configured MEDIA_DIR or legacy /media mount so existing
+    // absolute paths stored in the DB continue to work when running locally.
+    if (!isUnder(resolvedMediaDir) && !isUnder(legacyMediaDir)) {
         throw new Error('Path is outside the allowed media directory')
     }
 
@@ -69,7 +88,32 @@ export async function getFileMetadata(filePath) {
 
 export async function listFiles(dirPath) {
     try {
-        const validatedPath = validatePath(dirPath)
+        let validatedPath = validatePath(dirPath)
+
+        // If the resolved path doesn't exist (common when '/media' was used in Docker
+        // but not present locally), and the path points to the legacy '/media', try
+        // falling back to the configured MEDIA_DIR if it exists.
+        try {
+            await fs.access(validatedPath)
+        } catch (err) {
+            const resolvedMediaDir = path.resolve(MEDIA_DIR)
+            const legacyMediaDir = path.resolve('/media')
+
+            if (validatedPath === legacyMediaDir || validatedPath.startsWith(legacyMediaDir + path.sep)) {
+                // try to fall back to configured MEDIA_DIR
+                try {
+                    await fs.access(resolvedMediaDir)
+                    validatedPath = resolvedMediaDir
+                } catch (e) {
+                    // neither legacy nor configured directory exists
+                    throw err
+                }
+            } else {
+                // path simply doesn't exist
+                throw err
+            }
+        }
+
         const entries = await fs.readdir(validatedPath, { withFileTypes: true })
 
         const files = []

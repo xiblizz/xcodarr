@@ -7,8 +7,8 @@ let db = null
 
 function getDatabase() {
     if (!db) {
-        // Ensure data directory exists
-        const dataDir = '/data'
+        // Ensure data directory exists. Respect DATA_DIR env var (loaded from .env when running locally).
+        const dataDir = process.env.DATA_DIR || path.resolve(process.cwd(), 'data')
         if (!fs.existsSync(dataDir)) {
             fs.mkdirSync(dataDir, { recursive: true })
         }
