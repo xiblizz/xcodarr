@@ -1,11 +1,9 @@
-import adapter from '@sveltejs/adapter-node'
+import adapter from 'sveltejs/adapter-bun'
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
     kit: {
-        adapter: adapter({
-            out: 'build',
-        }),
+        adapter: adapter(),
     },
     // Disable accessibility warnings
     onwarn: (warning, handler) => {

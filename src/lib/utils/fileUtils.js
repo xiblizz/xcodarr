@@ -2,14 +2,18 @@ import fs from 'fs/promises'
 import path from 'path'
 import { spawn } from 'child_process'
 
-const MEDIA_DIR = process.env.MEDIA_DIR || '/media'
+// Resolve MEDIA_DIR to an absolute path, supporting Windows and relative env values
+const RAW_MEDIA_DIR = process.env.MEDIA_DIR || '/media'
+const MEDIA_DIR = path.isAbsolute(RAW_MEDIA_DIR) ? RAW_MEDIA_DIR : path.resolve(process.cwd(), RAW_MEDIA_DIR)
 
 // Security: Validate that paths stay within the media directory
 export function validatePath(targetPath) {
     const resolvedPath = path.resolve(targetPath)
     const resolvedMediaDir = path.resolve(MEDIA_DIR)
 
-    if (!resolvedPath.startsWith(resolvedMediaDir)) {
+    const rel = path.relative(resolvedMediaDir, resolvedPath)
+    // Outside if it resolves outside the tree or is absolute
+    if (rel.startsWith('..') || path.isAbsolute(rel)) {
         throw new Error('Path is outside the allowed media directory')
     }
 
@@ -70,6 +74,8 @@ export async function getFileMetadata(filePath) {
 export async function listFiles(dirPath) {
     try {
         const validatedPath = validatePath(dirPath)
+        // Check existence explicitly to return clearer error on Windows paths
+        await fs.access(validatedPath)
         const entries = await fs.readdir(validatedPath, { withFileTypes: true })
 
         const files = []
@@ -110,6 +116,11 @@ export async function listFiles(dirPath) {
 
         return files
     } catch (error) {
+        if (error && error.code === 'ENOENT') {
+            throw new Error(
+                `Failed to list files: Media directory not found at ${dirPath}. Set MEDIA_DIR correctly or create the directory.`
+            )
+        }
         throw new Error(`Failed to list files: ${error.message}`)
     }
 }
