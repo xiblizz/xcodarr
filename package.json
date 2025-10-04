@@ -25,7 +25,7 @@
         "ffmpeg",
         "file-manager"
     ],
-    "author": "",
-    "license": "ISC",
+    "author": "https://github.com/xiblizz",
+    "license": "Apache-2.0 license",
     "description": "SvelteKit Media Manager with Smart GPU/CPU FFMPEG Transcoding"
 }
