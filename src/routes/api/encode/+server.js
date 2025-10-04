@@ -7,7 +7,7 @@ import path from 'path'
 
 export async function POST({ request }) {
     try {
-        const { files, codec, cq, forceGpu, forceCpu } = await request.json()
+        const { files, codec, cq, forceGpu, forceCpu, autoDelete } = await request.json()
 
         if (!files || !Array.isArray(files) || files.length === 0) {
             return json({ error: 'No files provided' }, { status: 400 })
@@ -61,6 +61,7 @@ export async function POST({ request }) {
                     codec,
                     cq,
                     using_gpu: Boolean(hwEncoder),
+                    auto_delete: Boolean(autoDelete),
                     status: 'queued',
                     input_size: stats.size,
                 })
@@ -72,6 +73,7 @@ export async function POST({ request }) {
                     cq,
                     using_gpu: Boolean(hwEncoder),
                     hwEncoder: hwEncoder,
+                    auto_delete: Boolean(autoDelete),
                 })
             } catch (error) {
                 console.error(`Error creating job for ${filePath}:`, error)

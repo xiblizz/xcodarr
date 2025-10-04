@@ -121,6 +121,48 @@ For GPU transcoding, ensure:
 ### Encoding
 
 -   `POST /api/encode` - Start encoding jobs
+
+        Parameters (JSON body):
+
+        - `files` (array, required): List of input file paths to encode. Paths must be valid and within the configured media directory.
+        - `codec` (string, required): Target codec, either `x264` or `x265`.
+        - `cq` (number, required): Quality value. Must be between 18 and 31 (inclusive). For software encoders this maps to CRF; hardware encoders use their quality parameter.
+        - `forceGpu` (boolean, optional): Force using GPU encoder if available.
+        - `forceCpu` (boolean, optional): Force using CPU encoder (software) even if a GPU is available.
+        - `autoDelete` (boolean, optional): If `true`, the input file will be deleted automatically after a successful encode and verification.
+
+        Example request body:
+
+        ```json
+        {
+        	"files": ["/media/movies/MyMovie.mkv"],
+        	"codec": "x265",
+        	"cq": 23,
+        	"forceGpu": false,
+        	"autoDelete": true
+        }
+        ```
+
+        Response (success):
+
+        ```json
+        {
+        	"success": true,
+        	"jobs": [
+        		{
+        			"id": 123,
+        			"filename": "MyMovie.mkv",
+        			"codec": "x265",
+        			"cq": 23,
+        			"using_gpu": false,
+        			"hwEncoder": null,
+        			"auto_delete": true
+        		}
+        	],
+        	"message": "Created 1 encoding job"
+        }
+        ```
+
 -   `GET /api/gpu-status` - Check GPU availability
 
 ### Job Management

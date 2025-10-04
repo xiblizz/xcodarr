@@ -505,6 +505,7 @@
     .file-list {
         max-height: 60vh;
         overflow-y: auto;
+        user-select: none;
     }
 
     .file-row {

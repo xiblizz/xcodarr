@@ -38,10 +38,11 @@ async function initializeTables() {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			filename TEXT NOT NULL,
 			input_path TEXT NOT NULL,
-			output_path TEXT,
+            output_path TEXT,
 			codec TEXT NOT NULL,
 			cq INTEGER NOT NULL,
 			using_gpu BOOLEAN NOT NULL DEFAULT 0,
+            auto_delete BOOLEAN NOT NULL DEFAULT 0,
 			status TEXT NOT NULL DEFAULT 'queued',
 			progress REAL DEFAULT 0,
 			input_size INTEGER,
@@ -53,6 +54,18 @@ async function initializeTables() {
 		)
 	`)
 
+    // Ensure 'auto_delete' column exists for older databases
+    try {
+        const cols = await database.all(`PRAGMA table_info(jobs)`)
+        const hasAutoDelete = cols.some((c) => c.name === 'auto_delete')
+        if (!hasAutoDelete) {
+            console.log("Migrating database: adding 'auto_delete' column to jobs table")
+            await database.runAsync(`ALTER TABLE jobs ADD COLUMN auto_delete BOOLEAN NOT NULL DEFAULT 0`)
+        }
+    } catch (err) {
+        console.error('Error ensuring auto_delete column exists:', err)
+    }
+
     console.log('Database initialized')
 }
 
@@ -63,8 +76,8 @@ export async function createJob(jobData) {
     const lastId = await new Promise((resolve, reject) => {
         database._run(
             `
-		INSERT INTO jobs (filename, input_path, output_path, codec, cq, using_gpu, status, input_size)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO jobs (filename, input_path, output_path, codec, cq, using_gpu, auto_delete, status, input_size)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`,
             [
                 jobData.filename,
@@ -73,6 +86,7 @@ export async function createJob(jobData) {
                 jobData.codec,
                 jobData.cq,
                 jobData.using_gpu ? 1 : 0,
+                jobData.auto_delete ? 1 : 0,
                 jobData.status || 'queued',
                 jobData.input_size || null,
             ],
@@ -96,6 +110,7 @@ export async function getAllJobs() {
     return jobs.map((job) => ({
         ...job,
         using_gpu: Boolean(job.using_gpu),
+        auto_delete: Boolean(job.auto_delete),
         progress: job.progress === null || job.progress === undefined ? 0 : Number(job.progress),
     }))
 }
@@ -106,6 +121,7 @@ export async function getJob(id) {
 
     if (job) {
         job.using_gpu = Boolean(job.using_gpu)
+        job.auto_delete = Boolean(job.auto_delete)
         job.progress = job.progress === null || job.progress === undefined ? 0 : Number(job.progress)
     }
 
@@ -154,5 +170,6 @@ export async function getRunningJobs() {
     return jobs.map((job) => ({
         ...job,
         using_gpu: Boolean(job.using_gpu),
+        auto_delete: Boolean(job.auto_delete),
     }))
 }

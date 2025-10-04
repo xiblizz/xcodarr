@@ -1,5 +1,6 @@
 import { getNextQueuedJob, getRunningJobs, updateJob, getJob, deleteJob } from './database.js'
 import { encodeVideo, checkGpuAvailability } from './encodingUtils.js'
+import fs from 'fs/promises'
 
 class JobQueue {
     constructor() {
@@ -115,6 +116,48 @@ class JobQueue {
                             output_size: result.size,
                             completed_at: new Date().toISOString(),
                         })
+
+                        // If job requested auto-delete of the input file, attempt to remove it
+                        try {
+                            // Refresh job record to get the latest flags (auto_delete)
+                            const finishedJob = await getJob(jobId)
+                            if (finishedJob && finishedJob.auto_delete) {
+                                // Verify output file exists and is reasonable before deleting input
+                                try {
+                                    const outStats = await fs.stat(finishedJob.output_path)
+                                    const outSize = outStats.size || 0
+
+                                    // Prefer the size reported by the encoder if provided
+                                    const reportedSize = Number(result && result.size) || null
+
+                                    const isValidOutput =
+                                        outSize > 0 && (reportedSize === null || reportedSize === outSize)
+
+                                    if (!isValidOutput) {
+                                        console.error(
+                                            `Auto-delete aborted for job ${jobId}: output validation failed (outSize=${outSize}, reported=${reportedSize})`
+                                        )
+                                    } else {
+                                        try {
+                                            await fs.unlink(finishedJob.input_path)
+                                            console.log(
+                                                `Auto-deleted input file for job ${jobId}: ${finishedJob.input_path}`
+                                            )
+                                        } catch (fsErr) {
+                                            // Log but don't fail the job if deletion fails
+                                            console.error(`Failed to auto-delete input file for job ${jobId}:`, fsErr)
+                                        }
+                                    }
+                                } catch (statErr) {
+                                    console.error(
+                                        `Auto-delete aborted for job ${jobId}: can't stat output file:`,
+                                        statErr
+                                    )
+                                }
+                            }
+                        } catch (err) {
+                            console.error(`Error checking auto_delete for job ${jobId}:`, err)
+                        }
                     }
                 }
             )
