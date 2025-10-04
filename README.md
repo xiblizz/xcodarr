@@ -123,14 +123,14 @@ For GPU transcoding, ensure:
 -   `POST /api/encode` - Start encoding jobs
 
         Parameters (JSON body):
-
+        
         - `files` (array, required): List of input file paths to encode. Paths must be valid and within the configured media directory.
         - `codec` (string, required): Target codec, either `x264` or `x265`.
         - `cq` (number, required): Quality value. Must be between 18 and 31 (inclusive). For software encoders this maps to CRF; hardware encoders use their quality parameter.
         - `forceGpu` (boolean, optional): Force using GPU encoder if available.
         - `forceCpu` (boolean, optional): Force using CPU encoder (software) even if a GPU is available.
         - `autoDelete` (boolean, optional): If `true`, the input file will be deleted automatically after a successful encode and verification.
-
+        
         Example request body:
 
         ```json
@@ -258,15 +258,7 @@ bun run preview
 
 ## License
 
-ISC License - See LICENSE file for details.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+Apache-2.0 license - See LICENSE file for details.
 
 ## Support
 
