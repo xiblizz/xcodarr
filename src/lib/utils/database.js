@@ -96,6 +96,7 @@ export async function getAllJobs() {
     return jobs.map((job) => ({
         ...job,
         using_gpu: Boolean(job.using_gpu),
+        progress: job.progress === null || job.progress === undefined ? 0 : Number(job.progress),
     }))
 }
 
@@ -105,6 +106,7 @@ export async function getJob(id) {
 
     if (job) {
         job.using_gpu = Boolean(job.using_gpu)
+        job.progress = job.progress === null || job.progress === undefined ? 0 : Number(job.progress)
     }
 
     return job
@@ -119,6 +121,12 @@ export async function updateJob(id, updates) {
     values.push(id)
 
     await database.runAsync(`UPDATE jobs SET ${setClause} WHERE id = ?`, values)
+    // Debug: log progress/state updates to help trace Windows/SQLite behavior
+    if (updates.progress !== undefined) {
+        console.debug(`DB: updated job ${id} progress -> ${updates.progress}`)
+    } else if (updates.status) {
+        console.debug(`DB: updated job ${id} status -> ${updates.status}`)
+    }
 }
 
 export async function deleteJob(id) {

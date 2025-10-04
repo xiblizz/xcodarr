@@ -7,6 +7,6 @@ import { getJobQueue } from '$lib/utils/jobQueue.js'
 // Initialize job queue when server starts
 getJobQueue()
 
-console.log('process.env.NODE_ENV', process.env.NODE_ENV)
-console.log('process.env.MEDIA_DIR', process.env.MEDIA_DIR)
-console.log('process.env.DATA_DIR', process.env.DATA_DIR)
+// console.log('process.env.NODE_ENV', process.env.NODE_ENV)
+// console.log('process.env.MEDIA_DIR', process.env.MEDIA_DIR)
+// console.log('process.env.DATA_DIR', process.env.DATA_DIR)

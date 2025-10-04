@@ -17,8 +17,8 @@ export async function POST({ request }) {
             return json({ error: 'Invalid codec. Must be x264 or x265' }, { status: 400 })
         }
 
-        if (!cq || cq < 18 || cq > 28) {
-            return json({ error: 'Invalid CQ value. Must be between 18 and 28' }, { status: 400 })
+        if (!cq || cq < 18 || cq > 31) {
+            return json({ error: 'Invalid CQ value. Must be between 18 and 31' }, { status: 400 })
         }
 
         const gpuInfo = await checkGpuAvailability()

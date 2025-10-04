@@ -86,7 +86,15 @@ class JobQueue {
                 jobData,
                 // Progress callback
                 async (progress) => {
-                    await updateJob(jobId, { progress })
+                    try {
+                        // Ensure progress is a finite number
+                        const pct = Number(progress)
+                        if (!Number.isFinite(pct)) return
+                        console.debug(`job ${jobId} progress callback: ${pct}%`)
+                        await updateJob(jobId, { progress: pct })
+                    } catch (err) {
+                        console.error(`Failed to persist progress for job ${jobId}:`, err)
+                    }
                 },
                 // Completion callback
                 async (error, result) => {

@@ -1,15 +1,16 @@
 <script>
-  import '../app.css';
+    import '@fontsource/inter'
+    import '../app.css'
 </script>
 
 <main>
-  <slot />
+    <slot />
 </main>
 
 <style>
-  main {
-    max-width: 100%;
-    margin: 0;
-    padding: 1rem;
-  }
+    main {
+        max-width: 100%;
+        margin: 0;
+        padding: 1rem;
+    }
 </style>

@@ -1,6 +1,7 @@
 import { spawn } from 'child_process'
 import fs from 'fs/promises'
 import path from 'path'
+import { spawn as spawnAsync } from 'child_process'
 
 let gpuInfoCache = null
 
@@ -83,6 +84,20 @@ export function getCodecSettings(codec, hwEncoder, cq) {
 
 export function generateOutputPath(inputPath, codec) {
     const parsed = path.parse(inputPath)
+    // If the filename already contains a codec token (h264, x264, h265, x265),
+    // replace that token with the target codec token (h264 or h265) to avoid
+    // double-suffixes. Example: "movie_x264.mkv" -> "movie_h265.mkv" when
+    // converting to x265.
+    const targetToken = codec === 'x264' ? 'h264' : 'h265'
+
+    // Replace tokens in a case-insensitive manner, but preserve the rest of the name.
+    const newName = parsed.name.replace(/\b(x?h264|x?h265)\b/i, targetToken)
+
+    if (newName !== parsed.name) {
+        return path.join(parsed.dir, `${newName}.mkv`)
+    }
+
+    // Fallback: append a suffix to indicate the target codec
     const suffix = codec === 'x264' ? '_h264' : '_h265'
     return path.join(parsed.dir, `${parsed.name}${suffix}.mkv`)
 }
@@ -124,6 +139,41 @@ export function encodeVideo(jobData, onProgress, onComplete) {
     const stderrBuffer = []
     const MAX_LINES = 50
 
+    // Probe input file duration with ffprobe in the background as a fallback.
+    // This is async and won't block returning the ChildProcess; when the
+    // duration becomes available we'll use it for progress calculations.
+    try {
+        const probe = spawnAsync('ffprobe', [
+            '-v',
+            'quiet',
+            '-print_format',
+            'json',
+            '-show_format',
+            '-show_streams',
+            inputPath,
+        ])
+
+        let probeOut = ''
+        probe.stdout?.on('data', (d) => (probeOut += d.toString()))
+        probe.on('close', (code) => {
+            try {
+                if (code === 0 && probeOut) {
+                    const data = JSON.parse(probeOut)
+                    const duration = parseFloat(data.format?.duration)
+                    if (!isNaN(duration) && duration > 0) {
+                        totalDuration = duration
+                        console.debug(`[encode] ffprobe detected duration for ${inputPath}: ${totalDuration}s`)
+                    }
+                }
+            } catch (err) {
+                // ignore probe parse errors; we'll rely on FFmpeg stderr when available
+            }
+        })
+        probe.on('error', () => {})
+    } catch (err) {
+        // ignore errors probing duration
+    }
+
     ffmpeg.stderr.on('data', (data) => {
         const output = data.toString()
         // Keep a rolling buffer of stderr lines for debugging
@@ -133,25 +183,51 @@ export function encodeVideo(jobData, onProgress, onComplete) {
             if (stderrBuffer.length > MAX_LINES) stderrBuffer.shift()
         })
 
-        // Parse duration from FFmpeg output
-        const durationMatch = output.match(/Duration: (\d{2}):(\d{2}):(\d{2})\.\d{2}/)
+        // Parse duration from FFmpeg output (allow 1+ hour digits and fractional seconds)
+        // Examples: "Duration: 00:02:34.56" or "Duration: 0:02:34.56"
+        const durationMatch = output.match(/Duration:\s*(\d{1,}:\d{2}:\d{2}(?:\.\d+)?)/)
         if (durationMatch && !totalDuration) {
-            const hours = parseInt(durationMatch[1])
-            const minutes = parseInt(durationMatch[2])
-            const seconds = parseInt(durationMatch[3])
+            const durStr = durationMatch[1]
+            const parts = durStr.split(':')
+            const hours = parseInt(parts[0])
+            const minutes = parseInt(parts[1])
+            const seconds = parseFloat(parts[2])
             totalDuration = hours * 3600 + minutes * 60 + seconds
         }
 
         // Parse current time from FFmpeg output
-        const timeMatch = output.match(/time=(\d{2}):(\d{2}):(\d{2})\.\d{2}/)
+        // Primary: hh:mm:ss[.ms] (e.g., time=00:00:10.00 or time=0:00:10.00)
+        const timeMatch = output.match(/time=(\d{1,}:\d{2}:\d{2}(?:\.\d+)?)/)
         if (timeMatch && totalDuration) {
-            const hours = parseInt(timeMatch[1])
-            const minutes = parseInt(timeMatch[2])
-            const seconds = parseInt(timeMatch[3])
+            const timeStr = timeMatch[1]
+            const parts = timeStr.split(':')
+            const hours = parseInt(parts[0])
+            const minutes = parseInt(parts[1])
+            const seconds = parseFloat(parts[2])
             currentTime = hours * 3600 + minutes * 60 + seconds
 
             const progress = Math.min((currentTime / totalDuration) * 100, 100)
-            onProgress(progress)
+            const pct = Number(progress.toFixed(1))
+            console.debug(
+                `[encode] progress parsed for ${inputPath}: ${pct}% (time=${timeStr} / duration=${totalDuration}s)`
+            )
+            onProgress(pct)
+            return
+        }
+
+        // Fallback: some ffmpeg builds or encoders (or piped input) may emit time in seconds: e.g., time=123.45
+        const secsMatch = output.match(/time=(\d+(?:\.\d+)?)(?:\s|$)/)
+        if (secsMatch && totalDuration) {
+            const secs = parseFloat(secsMatch[1])
+            if (!isNaN(secs)) {
+                currentTime = secs
+                const progress = Math.min((currentTime / totalDuration) * 100, 100)
+                const pct = Number(progress.toFixed(1))
+                console.debug(
+                    `[encode] progress parsed (secs) for ${inputPath}: ${pct}% (time=${secs}s / duration=${totalDuration}s)`
+                )
+                onProgress(pct)
+            }
         }
     })
 

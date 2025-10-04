@@ -1,4 +1,4 @@
-import adapter from 'sveltejs/adapter-bun'
+import adapter from 'svelte-adapter-bun'
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -7,7 +7,7 @@ const config = {
     },
     // Disable accessibility warnings
     onwarn: (warning, handler) => {
-        if (warning.code.includes('a11y')) return
+        if (warning.code.includes('A11y')) return
         handler(warning)
     },
 }
