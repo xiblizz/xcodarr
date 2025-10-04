@@ -7,7 +7,7 @@
 
     const dispatch = createEventDispatcher()
 
-    let clipboard = null
+    let clipboard = [] // array of files
     let clipboardOperation = null // 'cut' or 'copy'
     let showContextMenu = false
     let contextMenuX = 0
@@ -15,6 +15,7 @@
     let contextMenuFile = null
     let renameFile = null
     let renameValue = ''
+    let searchQuery = ''
 
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 B'
@@ -135,41 +136,74 @@
     }
 
     function copyFile(file) {
-        clipboard = file
+        clipboard = [file]
         clipboardOperation = 'copy'
         closeContextMenu()
     }
 
     function cutFile(file) {
-        clipboard = file
+        clipboard = [file]
         clipboardOperation = 'cut'
         closeContextMenu()
     }
 
-    async function pasteFile() {
-        if (!clipboard || !clipboardOperation) return
+    // Toolbar bulk operations
+    function copySelected() {
+        if (!selectedFiles.length) return
+        clipboard = [...selectedFiles]
+        clipboardOperation = 'copy'
+    }
 
-        try {
-            const response = await fetch('/api/files/paste', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sourcePath: clipboard.path,
-                    targetDir: currentPath,
-                    operation: clipboardOperation,
-                }),
-            })
+    function cutSelected() {
+        if (!selectedFiles.length) return
+        clipboard = [...selectedFiles]
+        clipboardOperation = 'cut'
+    }
 
-            if (response.ok) {
-                dispatch('refresh')
-                clipboard = null
-                clipboardOperation = null
-            } else {
-                alert('Failed to paste file')
+    async function deleteSelected() {
+        if (!selectedFiles.length) return
+        if (!confirm(`Delete ${selectedFiles.length} selected item(s)?`)) return
+        for (const f of selectedFiles) {
+            try {
+                const response = await fetch('/api/files/delete', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: f.path }),
+                })
+                if (!response.ok) {
+                    const e = await response.json().catch(() => ({}))
+                    console.error('Failed to delete', f.path, e)
+                }
+            } catch (err) {
+                console.error('Error deleting', f.path, err)
             }
-        } catch (error) {
-            alert('Error pasting file: ' + error.message)
         }
+        dispatch('refresh')
+    }
+
+    async function pasteFile() {
+        if (!clipboard?.length || !clipboardOperation) return
+        let anyError = false
+        for (const f of clipboard) {
+            try {
+                const response = await fetch('/api/files/paste', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sourcePath: f.path,
+                        targetDir: currentPath,
+                        operation: clipboardOperation,
+                    }),
+                })
+                if (!response.ok) anyError = true
+            } catch (error) {
+                anyError = true
+            }
+        }
+        if (anyError) alert('Some items could not be pasted')
+        dispatch('refresh')
+        clipboard = []
+        clipboardOperation = null
         closeContextMenu()
     }
 
@@ -242,29 +276,62 @@
             >
                 Select All
             </button>
-            <button
+            <!-- <button
                 class="btn btn-secondary"
                 on:click={selectVideoFiles}
             >
                 Select Videos
-            </button>
+            </button> -->
             <button
                 class="btn btn-secondary"
                 on:click={clearSelection}
                 disabled={selectedFiles.length === 0}
             >
-                Clear ({selectedFiles.length})
+                Clear Selection ({selectedFiles.length})
             </button>
+            <div class="bulk-actions">
+                <button
+                    class="btn btn-secondary"
+                    on:click={copySelected}
+                    disabled={selectedFiles.length === 0}
+                >
+                    Copy
+                </button>
+                <button
+                    class="btn btn-secondary"
+                    on:click={cutSelected}
+                    disabled={selectedFiles.length === 0}
+                >
+                    Cut
+                </button>
+                <button
+                    class="btn btn-danger"
+                    on:click={deleteSelected}
+                    disabled={selectedFiles.length === 0}
+                >
+                    Delete
+                </button>
+            </div>
         </div>
 
-        {#if clipboard && clipboardOperation}
+        {#if clipboard?.length && clipboardOperation}
             <button
                 class="btn btn-primary"
                 on:click={pasteFile}
             >
-                Paste ({clipboardOperation})
+                Paste {clipboard.length}
+                {clipboardOperation}
             </button>
         {/if}
+
+        <div class="search">
+            <input
+                class="form-control"
+                placeholder="Search..."
+                bind:value={searchQuery}
+            />
+        </div>
+
         <span class="file-count">{files.length} items</span>
     </div>
 
@@ -280,7 +347,9 @@
                 </tr>
             </thead>
             <tbody>
-                {#each files as file}
+                {#each files.filter((f) => !searchQuery || f.name
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase())) as file}
                     <tr
                         class="file-row"
                         class:selected={selectedFiles.includes(file)}
@@ -391,10 +460,25 @@
         margin-left: 0.5rem;
     }
 
+    .bulk-actions {
+        display: flex;
+        gap: 0.25rem;
+        margin-left: 0.5rem;
+    }
+
+    .search {
+        /* margin-left: 0.5rem; */
+        margin-left: auto;
+    }
+    .search input {
+        width: 200px;
+    }
+
     /* .btn-sm centralized in app.css */
 
     .file-count {
-        margin-left: auto;
+        margin-left: 0.5rem;
+        /* margin-left: auto; */
         color: #a0aec0;
         font-size: 0.9rem;
     }

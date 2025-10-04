@@ -1,4 +1,4 @@
-# Transcodarr - Media Manager with Smart GPU/CPU FFMPEG Transcoding
+# xcodarr - Media Manager with Smart GPU/CPU FFMPEG Transcoding
 
 A SvelteKit web application that provides a comprehensive media file manager with intelligent GPU/CPU transcoding capabilities using FFmpeg.
 

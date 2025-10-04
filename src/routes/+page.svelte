@@ -53,12 +53,16 @@
 </script>
 
 <svelte:head>
-    <title>Transcodarr - Media Manager</title>
+    <title>xcodarr - Media Manager</title>
+    <meta
+        name="application-name"
+        content="xcodarr"
+    />
 </svelte:head>
 
 <div class="app">
     <header>
-        <h1>transcodarr</h1>
+        <h1>xcodarr</h1>
         <nav class="breadcrumb">
             {#each currentPath.split('/').filter((part) => part) as part, index}
                 {#if index > 0}<span class="breadcrumb-separator">/</span>{/if}
@@ -78,12 +82,12 @@
                 on:refresh={loadFiles}
             />
 
-            {#if hasVideoSelection}
-                <EncodingToolbar
-                    {selectedFiles}
-                    on:encode-start={loadJobs}
-                />
-            {/if}
+            <!-- {#if hasVideoSelection} -->
+            <EncodingToolbar
+                {selectedFiles}
+                on:encode-start={loadJobs}
+            />
+            <!-- {/if} -->
         </div>
 
         <div class="job-section">

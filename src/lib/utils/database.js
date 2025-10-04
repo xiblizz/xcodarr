@@ -89,9 +89,9 @@ export async function createJob(jobData) {
 export async function getAllJobs() {
     const database = getDatabase()
     const jobs = await database.all(`
-		SELECT * FROM jobs 
-		ORDER BY created_at DESC
-	`)
+        SELECT * FROM jobs 
+        ORDER BY id DESC
+    `)
 
     return jobs.map((job) => ({
         ...job,

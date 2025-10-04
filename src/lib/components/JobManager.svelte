@@ -81,6 +81,26 @@
         }
     }
 
+    async function deleteFilePath(path, label) {
+        if (!path) return
+        if (!confirm(`Delete ${label}?\n${path}`)) return
+        try {
+            const response = await fetch('/api/files/delete', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path }),
+            })
+            if (!response.ok) {
+                const e = await response.json().catch(() => ({}))
+                alert(`Failed to delete ${label}` + (e.error ? `: ${e.error}` : ''))
+            } else {
+                dispatch('job-update')
+            }
+        } catch (err) {
+            alert(`Error deleting ${label}: ` + err.message)
+        }
+    }
+
     async function forceStopAndRemove(jobId) {
         if (!confirm('Force kill the process and remove the job?')) return
         try {
@@ -239,6 +259,20 @@
                                                 ((job.input_size - job.output_size) / job.input_size) * 100}
                                             <span><strong>Space saved:</strong> {savings.toFixed(1)}%</span>
                                         {/if}
+                                        <div class="completion-actions">
+                                            <button
+                                                class="btn btn-sm btn-secondary"
+                                                on:click={() => deleteFilePath(job.input_path, 'original file')}
+                                            >
+                                                Delete original
+                                            </button>
+                                            <button
+                                                class="btn btn-sm btn-danger"
+                                                on:click={() => deleteFilePath(job.output_path, 'encoded file')}
+                                            >
+                                                Delete encoded
+                                            </button>
+                                        </div>
                                     </div>
                                 {/if}
 
@@ -390,6 +424,11 @@
         gap: 1rem;
         font-size: 0.9rem;
         color: var(--fg);
+    }
+
+    .completion-actions {
+        display: flex;
+        gap: 0.5rem;
     }
 
     .error-message {
