@@ -1,9 +1,26 @@
 <script>
     import { createEventDispatcher } from 'svelte'
+    import { onMount } from 'svelte'
 
     export let jobs = []
 
     const dispatch = createEventDispatcher()
+
+    let autoDeleteOriginal = false
+    let autoDeletedJobIds = new Set()
+    let lastStatusById = new Map()
+
+    onMount(() => {
+        try {
+            autoDeleteOriginal = localStorage.getItem('autoDeleteOriginal') === 'true'
+        } catch {}
+    })
+
+    $: (() => {
+        try {
+            localStorage.setItem('autoDeleteOriginal', String(autoDeleteOriginal))
+        } catch {}
+    })()
 
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 B'
@@ -81,9 +98,9 @@
         }
     }
 
-    async function deleteFilePath(path, label) {
+    async function deleteFilePath(path, label, skipConfirm = false) {
         if (!path) return
-        if (!confirm(`Delete ${label}?\n${path}`)) return
+        if (!skipConfirm && !confirm(`Delete ${label}?\n${path}`)) return
         try {
             const response = await fetch('/api/files/delete', {
                 method: 'DELETE',
@@ -97,7 +114,7 @@
                 dispatch('job-update')
             }
         } catch (err) {
-            alert(`Error deleting ${label}: ` + err.message)
+            if (!skipConfirm) alert(`Error deleting ${label}: ` + err.message)
         }
     }
 
@@ -137,19 +154,85 @@
     $: queuedJobs = jobs.filter((job) => job.status === 'queued')
     $: completedJobs = jobs.filter((job) => job.status === 'completed')
     $: failedJobs = jobs.filter((job) => job.status === 'failed')
+
+    // Auto-delete originals on completion when enabled
+    $: if (jobs && jobs.length) {
+        for (const j of jobs) {
+            const prev = lastStatusById.get(j.id)
+            // notify listeners when a job just completed
+            if (j.status === 'completed' && prev !== 'completed') {
+                try {
+                    dispatch('job-completed', { job: j })
+                } catch {}
+            }
+
+            if (
+                autoDeleteOriginal &&
+                j.status === 'completed' &&
+                prev !== 'completed' &&
+                !autoDeletedJobIds.has(j.id)
+            ) {
+                // fire and forget, silent when auto
+                deleteFilePath(j.input_path, 'original file', true)
+                autoDeletedJobIds.add(j.id)
+            }
+            lastStatusById.set(j.id, j.status)
+        }
+    }
+
+    async function clearFinishedJobs() {
+        const finished = jobs.filter(
+            (j) => j.status === 'completed' || j.status === 'failed' || j.status === 'cancelled'
+        )
+        if (!finished.length) return
+        if (!confirm(`Remove ${finished.length} finished job(s) from the queue?`)) return
+        for (const j of finished) {
+            try {
+                const response = await fetch(`/api/jobs/${j.id}`, { method: 'DELETE' })
+                if (!response.ok) {
+                    const e = await response.json().catch(() => ({}))
+                    console.error('Failed to delete job', j.id, e)
+                }
+            } catch (err) {
+                console.error('Error deleting job', j.id, err)
+            }
+        }
+        dispatch('job-update')
+    }
 </script>
 
 <div class="job-manager">
     <div class="card">
         <div class="card-header">
-            <h3>Encoding Jobs</h3>
-            <div class="job-stats">
-                <span class="stat running">Running: {runningJobs.length}</span>
-                <span class="stat queued">Queued: {queuedJobs.length}</span>
-                <span class="stat completed">Completed: {completedJobs.length}</span>
-                {#if failedJobs.length > 0}
-                    <span class="stat failed">Failed: {failedJobs.length}</span>
-                {/if}
+            <div class="header-top">
+                <div class="header-left">
+                    <h3>Encoding Jobs</h3>
+                </div>
+                <div class="header-right">
+                    <label class="auto-del">
+                        <input
+                            type="checkbox"
+                            bind:checked={autoDeleteOriginal}
+                        />
+                        Auto-delete originals
+                    </label>
+                    <button
+                        class="btn btn-sm btn-secondary"
+                        on:click={clearFinishedJobs}
+                    >
+                        Clear finished
+                    </button>
+                </div>
+            </div>
+            <div class="header-bottom">
+                <div class="job-stats">
+                    <span class="stat running">Running: {runningJobs.length}</span>
+                    <span class="stat queued">Queued: {queuedJobs.length}</span>
+                    <span class="stat completed">Completed: {completedJobs.length}</span>
+                    {#if failedJobs.length > 0}
+                        <span class="stat failed">Failed: {failedJobs.length}</span>
+                    {/if}
+                </div>
             </div>
         </div>
 
@@ -227,12 +310,14 @@
                                             {job.using_gpu ? 'GPU' : 'CPU'}
                                         </span>
                                     </span>
-                                    {#if job.input_size}
-                                        <span><strong>Size:</strong> {formatFileSize(job.input_size)}</span>
-                                    {/if}
                                 </div>
 
-                                {#if job.status === 'running' || job.status === 'completed'}
+                                {#if job.status === 'running'}
+                                    <div class="job-file-sizes">
+                                        {#if job.input_size}
+                                            <span><strong>Input:</strong> {formatFileSize(job.input_size)}</span>
+                                        {/if}
+                                    </div>
                                     <div class="progress-section">
                                         <div class="progress">
                                             <div
@@ -253,7 +338,12 @@
 
                                 {#if job.status === 'completed' && job.output_size}
                                     <div class="completion-info">
-                                        <span><strong>Output:</strong> {formatFileSize(job.output_size)}</span>
+                                        <div class="job-file-sizes">
+                                            {#if job.input_size}
+                                                <span><strong>Input:</strong> {formatFileSize(job.input_size)}</span>
+                                            {/if}
+                                            <span><strong>Output:</strong> {formatFileSize(job.output_size)}</span>
+                                        </div>
                                         {#if job.input_size}
                                             {@const savings =
                                                 ((job.input_size - job.output_size) / job.input_size) * 100}
@@ -315,9 +405,52 @@
     .card-header {
         display: flex;
         flex-direction: column;
+        align-items: center;
         gap: 0.5rem;
         border-top-left-radius: 0.75rem;
         border-top-right-radius: 0.75rem;
+    }
+
+    .header-top {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+    .header-bottom {
+        margin-top: 0.5rem;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+    .header-left {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .header-right {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    .auto-del {
+        display: inline-flex;
+        gap: 0.4rem;
+        align-items: center;
+        color: var(--muted);
+        font-size: 0.85rem;
+    }
+
+    @media (max-width: 768px) {
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .header-right {
+            width: 100%;
+            justify-content: space-between;
+        }
     }
 
     .card-header h3 {
@@ -401,6 +534,14 @@
         display: flex;
         flex-wrap: wrap;
         gap: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .job-file-sizes {
+        display: flex;
+        flex-direction: column;
+        min-width: fit-content;
+        gap: 0.75rem;
         font-size: 0.9rem;
     }
 

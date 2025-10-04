@@ -249,6 +249,16 @@
         selectedFiles = files.filter((file) => file.metadata?.video_codec && file.type !== 'directory')
         dispatch('fileselect', { files: selectedFiles })
     }
+
+    // Derived: does the current selection include any video file?
+    $: hasVideoSelection = selectedFiles.some(
+        (f) => f && f.type !== 'directory' && f.metadata && f.metadata.video_codec
+    )
+
+    function openEncodeModal() {
+        if (!hasVideoSelection) return
+        dispatch('open-encode')
+    }
 </script>
 
 <svelte:window on:click={handleClick} />
@@ -289,30 +299,38 @@
             >
                 Clear Selection ({selectedFiles.length})
             </button>
-            <div class="bulk-actions">
-                <button
-                    class="btn btn-secondary"
-                    on:click={copySelected}
-                    disabled={selectedFiles.length === 0}
-                >
-                    Copy
-                </button>
-                <button
-                    class="btn btn-secondary"
-                    on:click={cutSelected}
-                    disabled={selectedFiles.length === 0}
-                >
-                    Cut
-                </button>
-                <button
-                    class="btn btn-danger"
-                    on:click={deleteSelected}
-                    disabled={selectedFiles.length === 0}
-                >
-                    Delete
-                </button>
-            </div>
         </div>
+
+        <div class="bulk-actions">
+            <button
+                class="btn btn-secondary"
+                on:click={copySelected}
+                disabled={selectedFiles.length === 0}
+            >
+                Copy
+            </button>
+            <button
+                class="btn btn-secondary"
+                on:click={cutSelected}
+                disabled={selectedFiles.length === 0}
+            >
+                Cut
+            </button>
+            <button
+                class="btn btn-danger"
+                on:click={deleteSelected}
+                disabled={selectedFiles.length === 0}
+            >
+                Delete
+            </button>
+        </div>
+        <button
+            class="btn btn-primary"
+            on:click={openEncodeModal}
+            disabled={!hasVideoSelection}
+        >
+            Encode →
+        </button>
 
         {#if clipboard?.length && clipboardOperation}
             <button
@@ -464,6 +482,7 @@
         display: flex;
         gap: 0.25rem;
         margin-left: 0.5rem;
+        margin-right: 0.5rem;
     }
 
     .search {

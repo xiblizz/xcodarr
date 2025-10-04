@@ -79,107 +79,84 @@
 </script>
 
 <div class="encoding-toolbar">
-    <div class="card">
-        <div class="card-header">
-            <h3>Encoding Options</h3>
-            <span class="text-muted">
-                {videoFileCount} video file{videoFileCount !== 1 ? 's' : ''} selected
-            </span>
-        </div>
+    <div class="encoding-options">
+        <div class="option-row">
+            <div class="option-group">
+                <label for="codec">Codec:</label>
+                <select
+                    id="codec"
+                    class="form-control"
+                    bind:value={codec}
+                >
+                    <option value="x264">H.264</option>
+                    <option value="x265">H.265</option>
+                </select>
+            </div>
 
-        <div class="card-body">
-            <div class="encoding-options">
-                <div class="option-row">
-                    <div class="option-group">
-                        <label for="codec">Codec:</label>
-                        <select
-                            id="codec"
-                            class="form-control"
-                            bind:value={codec}
-                        >
-                            <option value="x264">H.264</option>
-                            <option value="x265">H.265</option>
-                        </select>
-                    </div>
+            <div class="option-group">
+                <label for="cq">CQ: <span class="cq-value">{cqValue}</span></label>
+                <input
+                    id="cq"
+                    type="range"
+                    min="18"
+                    max="31"
+                    step="1"
+                    bind:value={cqValue}
+                    class="form-control range-input"
+                />
+            </div>
 
-                    <div class="option-group">
-                        <label for="cq">CQ: <span class="cq-value">{cqValue}</span></label>
+            <div class="option-group">
+                <!-- svelte-ignore a11y-label-has-associated-control -->
+                <label>Processor:</label>
+                <div class="processor-options">
+                    <label class="radio-label">
                         <input
-                            id="cq"
-                            type="range"
-                            min="18"
-                            max="31"
-                            step="1"
-                            bind:value={cqValue}
-                            class="form-control range-input"
+                            type="radio"
+                            bind:group={processorChoice}
+                            value="auto"
                         />
-                    </div>
-
-                    <div class="option-group">
-                        <!-- svelte-ignore a11y-label-has-associated-control -->
-                        <label>Processor:</label>
-                        <div class="processor-options">
-                            <label class="radio-label">
-                                <input
-                                    type="radio"
-                                    bind:group={processorChoice}
-                                    value="auto"
-                                />
-                                Auto
-                            </label>
-                            <label
-                                class="radio-label"
-                                class:disabled={!isGpuAvailable}
-                            >
-                                <input
-                                    type="radio"
-                                    bind:group={processorChoice}
-                                    value="gpu"
-                                    disabled={!isGpuAvailable}
-                                />
-                                GPU
-                            </label>
-                            <label class="radio-label">
-                                <input
-                                    type="radio"
-                                    bind:group={processorChoice}
-                                    value="cpu"
-                                />
-                                CPU
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="actions">
-                    <button
-                        class="btn btn-ghost encode-btn"
-                        on:click={startEncoding}
-                        disabled={videoFileCount === 0}
+                        Auto
+                    </label>
+                    <label
+                        class="radio-label"
+                        class:disabled={!isGpuAvailable}
                     >
-                        🎬 Start Encoding ({videoFileCount} file{videoFileCount !== 1 ? 's' : ''})
-                    </button>
+                        <input
+                            type="radio"
+                            bind:group={processorChoice}
+                            value="gpu"
+                            disabled={!isGpuAvailable}
+                        />
+                        GPU
+                    </label>
+                    <label class="radio-label">
+                        <input
+                            type="radio"
+                            bind:group={processorChoice}
+                            value="cpu"
+                        />
+                        CPU
+                    </label>
                 </div>
             </div>
+        </div>
+
+        <div class="actions">
+            <button
+                class="btn btn-ghost encode-btn"
+                on:click={startEncoding}
+                disabled={videoFileCount === 0}
+            >
+                🎬 Start Encoding ({videoFileCount} file{videoFileCount !== 1 ? 's' : ''})
+            </button>
         </div>
     </div>
 </div>
 
 <style>
     .encoding-toolbar {
-        margin-top: 1rem;
-    }
-
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .card-header h3 {
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 500;
+        margin-top: 0.5rem;
     }
 
     .encoding-options {

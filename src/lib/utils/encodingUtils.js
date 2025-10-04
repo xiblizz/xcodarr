@@ -98,7 +98,7 @@ export function generateOutputPath(inputPath, codec) {
     }
 
     // Fallback: append a suffix to indicate the target codec
-    const suffix = codec === 'x264' ? '_h264' : '_h265'
+    const suffix = codec === 'x264' ? ' [h264]' : ' [h265]'
     return path.join(parsed.dir, `${parsed.name}${suffix}.mkv`)
 }
 

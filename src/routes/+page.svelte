@@ -7,6 +7,7 @@
     let files = []
     let jobs = []
     let selectedFiles = []
+    let showEncodeModal = false
     let currentPath = '/media'
 
     onMount(async () => {
@@ -47,13 +48,22 @@
         selectedFiles = event.detail.files
     }
 
+    function openEncode() {
+        showEncodeModal = true
+    }
+
+    function closeEncode() {
+        showEncodeModal = false
+    }
+
     $: hasVideoSelection = selectedFiles.some(
         (f) => f && f.type !== 'directory' && f.metadata && f.metadata.video_codec
     )
+    $: videoFileCount = selectedFiles.filter((f) => f.metadata?.video_codec && f.type !== 'directory').length
 </script>
 
 <svelte:head>
-    <title>xcodarr - Media Manager</title>
+    <title>xcodarr</title>
     <meta
         name="application-name"
         content="xcodarr"
@@ -80,20 +90,56 @@
                 on:pathchange={handlePathChange}
                 on:fileselect={handleFileSelect}
                 on:refresh={loadFiles}
+                on:open-encode={openEncode}
             />
 
-            <!-- {#if hasVideoSelection} -->
-            <EncodingToolbar
-                {selectedFiles}
-                on:encode-start={loadJobs}
-            />
-            <!-- {/if} -->
+            {#if showEncodeModal}
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <div
+                    class="modal-backdrop"
+                    on:click={closeEncode}
+                >
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <div
+                        class="modal"
+                        on:click|stopPropagation
+                    >
+                        <div class="modal-header">
+                            <h3>Encoding Options</h3>
+                            <div class="gap-2 d-flex align-items-center">
+                                <span class="text-muted">
+                                    {videoFileCount} video file{videoFileCount !== 1 ? 's' : ''} selected
+                                </span>
+                                <button
+                                    class="btn btn-ghost"
+                                    on:click={closeEncode}>✕</button
+                                >
+                            </div>
+                        </div>
+                        <div class="modal-body">
+                            <EncodingToolbar
+                                {selectedFiles}
+                                on:encode-start={() => {
+                                    closeEncode()
+                                    loadJobs()
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            {/if}
         </div>
 
         <div class="job-section">
             <JobManager
                 {jobs}
-                on:job-update={loadJobs}
+                on:job-update={() => {
+                    loadJobs()
+                    loadFiles()
+                }}
+                on:job-completed={() => setTimeout(loadFiles, 1000)}
             />
         </div>
     </div>
@@ -142,7 +188,7 @@
 
     .main-content {
         display: grid;
-        grid-template-columns: 1fr 420px;
+        grid-template-columns: 1fr 480px;
         gap: 1rem;
         flex: 1;
     }
@@ -155,7 +201,39 @@
         padding-left: 0;
     }
 
-    @media (max-width: 768px) {
+    /* Simple modal */
+    .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+    }
+    .modal {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        width: min(720px, 92vw);
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .modal-body {
+        padding: 1rem;
+        overflow: auto;
+    }
+
+    @media (max-width: 1168px) {
         .main-content {
             grid-template-columns: 1fr;
         }
