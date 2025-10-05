@@ -45,14 +45,14 @@ A SvelteKit web application that provides a comprehensive media file manager wit
 
 ```bash
 # Clone the repository
-git clone https://github.com/xiblizz/transcodarr.git
-cd transcodarr
+git clone https://github.com/xiblizz/xcodarr.git
+cd xcodarr
 
 # Create data and media directories
 mkdir -p data media
 
 # Run with docker-compose
-docker-compose up transcodarr
+docker-compose up xcodarr
 ```
 
 #### GPU-enabled version:
@@ -60,15 +60,15 @@ docker-compose up transcodarr
 ```bash
 # Ensure nvidia-docker is installed and configured
 # Run GPU-enabled version
-docker-compose up transcodarr-gpu
+docker-compose up xcodarr-gpu
 ```
 
 ### Local Development
 
 ```bash
 # Clone and install dependencies
-git clone https://github.com/xiblizz/transcodarr.git
-cd transcodarr
+git clone https://github.com/xiblizz/xcodarr.git
+cd xcodarr
 bun install
 
 # Set environment variables
