@@ -1,6 +1,7 @@
-name: transcodarr
+name: xcodarr
 services:
-    transcodarr:
+    xcodarr:
+    container_name: xcodarr
         build: .
         ports:
             - '3000:3000'
