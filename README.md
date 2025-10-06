@@ -39,6 +39,11 @@ A SvelteKit web application that provides a comprehensive (media) file manager w
 -   **No shell execution**: Direct process spawning for security
 -   **Error handling**: Comprehensive error handling and logging
 
+## To-Do
+
+- Resolution Setting in Encoding Modal
+- Support for Intel iGPU
+
 ## Installation & Usage
 
 ### Docker (Recommended)
