@@ -2,7 +2,11 @@
 
 A SvelteKit web application that provides a comprehensive (media) file manager with intelligent GPU/CPU transcoding capabilities using FFmpeg.
 
-<img width="1590" height="451" alt="xcodarr-preview" src="https://github.com/user-attachments/assets/1c385123-d167-4608-a010-04391b06bd00" />
+## Screenshots
+
+<img width="1616" height="496" alt="image" src="https://github.com/user-attachments/assets/c4339544-1c35-4980-8edd-19ebfe1d8dea" />
+<img width="1621" height="599" alt="image" src="https://github.com/user-attachments/assets/9c1343b8-fec3-4ada-a0be-bc0b9e7ec3e8" />
+<img width="1615" height="493" alt="image" src="https://github.com/user-attachments/assets/8112ae34-1ccf-4654-a0d3-0148d41b9ae8" />
 
 ## Features
 
