@@ -101,7 +101,6 @@ bun run start
 
 -   `MEDIA_DIR`: Path to the media directory (default: `/media`)
 -   `MAX_CONCURRENT_JOBS`: Maximum concurrent encoding jobs (default: `1`)
--   `NODE_ENV`: Environment mode (`development` or `production`)
 
 ### Docker Volumes
 
@@ -114,7 +113,7 @@ For GPU transcoding, ensure:
 
 1. NVIDIA GPU with NVENC support
 2. NVIDIA Docker runtime installed
-3. Use the `transcodarr-gpu` service in docker-compose
+3. Use the `xcodarr-gpu` service in docker-compose
 
 ## API Endpoints
 
@@ -129,46 +128,26 @@ For GPU transcoding, ensure:
 
 -   `POST /api/encode` - Start encoding jobs
 
-        Parameters (JSON body):
+Parameters (JSON body):
         
-        - `files` (array, required): List of input file paths to encode. Paths must be valid and within the configured media directory.
-        - `codec` (string, required): Target codec, either `x264` or `x265`.
-        - `cq` (number, required): Quality value. Must be between 18 and 31 (inclusive). For software encoders this maps to CRF; hardware encoders use their quality parameter.
-        - `forceGpu` (boolean, optional): Force using GPU encoder if available.
-        - `forceCpu` (boolean, optional): Force using CPU encoder (software) even if a GPU is available.
-        - `autoDelete` (boolean, optional): If `true`, the input file will be deleted automatically after a successful encode and verification.
+- `files` (array, required): List of input file paths to encode. Paths must be valid and within the configured media directory.
+- `codec` (string, required): Target codec, either `x264` or `x265`.
+- `cq` (number, required): Quality value. Must be between 18 and 31 (inclusive). For software encoders this maps to CRF; hardware encoders use their quality parameter.
+- `forceGpu` (boolean, optional): Force using GPU encoder if available.
+- `forceCpu` (boolean, optional): Force using CPU encoder (software) even if a GPU is available.
+- `autoDelete` (boolean, optional): If `true`, the input file will be deleted automatically after a successful encode and verification.
         
-        Example request body:
+Example request body:
 
-        ```json
-        {
-        	"files": ["/media/movies/MyMovie.mkv"],
-        	"codec": "x265",
-        	"cq": 23,
-        	"forceGpu": false,
-        	"autoDelete": true
-        }
-        ```
-
-        Response (success):
-
-        ```json
-        {
-        	"success": true,
-        	"jobs": [
-        		{
-        			"id": 123,
-        			"filename": "MyMovie.mkv",
-        			"codec": "x265",
-        			"cq": 23,
-        			"using_gpu": false,
-        			"hwEncoder": null,
-        			"auto_delete": true
-        		}
-        	],
-        	"message": "Created 1 encoding job"
-        }
-        ```
+```json
+{
+	"files": ["/media/movies/MyMovie.mkv"],
+	"codec": "x265",
+	"cq": 23,
+	"forceGpu": false,
+	"autoDelete": true
+}
+```
 
 -   `GET /api/gpu-status` - Check GPU availability
 
@@ -248,20 +227,12 @@ bun run preview
 1. Verify NVIDIA drivers are installed
 2. Check `nvidia-smi` command works
 3. Ensure nvidia-docker runtime is configured
-4. Use CPU fallback if needed
 
 ### File Access Issues
 
 1. Check file permissions on mounted volumes
 2. Verify MEDIA_DIR environment variable
 3. Ensure paths are within allowed directory
-
-### Encoding Failures
-
-1. Check FFmpeg installation and codecs
-2. Verify input file format compatibility
-3. Check available disk space
-4. Review job error messages
 
 ## License
 
