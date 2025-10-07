@@ -7,14 +7,14 @@ import path from 'path'
 
 export async function POST({ request }) {
     try {
-        const { files, codec, cq, forceGpu, forceCpu, autoDelete } = await request.json()
+        const { files, codec, cq, forceGpu, forceCpu, autoDelete, targetWidth } = await request.json()
 
         if (!files || !Array.isArray(files) || files.length === 0) {
             return json({ error: 'No files provided' }, { status: 400 })
         }
 
-        if (!codec || (codec !== 'x264' && codec !== 'x265')) {
-            return json({ error: 'Invalid codec. Must be x264 or x265' }, { status: 400 })
+        if (!codec || (codec !== 'x264' && codec !== 'x265' && codec !== 'av1')) {
+            return json({ error: 'Invalid codec. Must be x264, x265 or av1' }, { status: 400 })
         }
 
         if (!cq || cq < 18 || cq > 31) {
@@ -29,10 +29,24 @@ export async function POST({ request }) {
             hwEncoder = null
         } else if (forceGpu) {
             // Use preferred if available
-            hwEncoder = gpuInfo.preferred || (gpuInfo.nvenc ? 'nvenc' : null)
+            hwEncoder = gpuInfo.preferred || (gpuInfo.nvenc ? 'nvenc' : gpuInfo.qsv ? 'qsv' : null)
         } else {
             // Default: use hardware if available
-            hwEncoder = gpuInfo.preferred || (gpuInfo.nvenc ? 'nvenc' : null)
+            hwEncoder = gpuInfo.preferred || (gpuInfo.nvenc ? 'nvenc' : gpuInfo.qsv ? 'qsv' : null)
+        }
+
+        // Basic AV1 support check (best-effort): allow if either SW (libsvt/libaom) or any HW av1 encoder detected
+        if (codec === 'av1') {
+            const hasAnyAv1 = Boolean(
+                gpuInfo?.av1?.nvenc ||
+                    gpuInfo?.av1?.qsv ||
+                    gpuInfo?.av1?.videotoolbox ||
+                    gpuInfo?.av1?.libaom ||
+                    gpuInfo?.av1?.libsvt
+            )
+            if (!hasAnyAv1) {
+                return json({ error: 'AV1 encoding not supported by this FFmpeg build' }, { status: 400 })
+            }
         }
 
         const jobs = []
@@ -62,6 +76,7 @@ export async function POST({ request }) {
                     cq,
                     using_gpu: Boolean(hwEncoder),
                     auto_delete: Boolean(autoDelete),
+                    target_width: targetWidth ? Number(targetWidth) : null,
                     status: 'queued',
                     input_size: stats.size,
                 })
@@ -74,6 +89,7 @@ export async function POST({ request }) {
                     using_gpu: Boolean(hwEncoder),
                     hwEncoder: hwEncoder,
                     auto_delete: Boolean(autoDelete),
+                    target_width: targetWidth ? Number(targetWidth) : null,
                 })
             } catch (error) {
                 console.error(`Error creating job for ${filePath}:`, error)

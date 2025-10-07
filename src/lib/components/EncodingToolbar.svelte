@@ -9,6 +9,51 @@
     let cqValue = 28
     let isGpuAvailable = false
     let processorChoice = 'auto' // 'auto', 'gpu', 'cpu'
+    let autoDelete = false
+
+    // Resolution presets and computed sizes
+    const resolutionPresets = [
+        { label: 'Original', width: null },
+        { label: '4K (2160p)', width: 3840 },
+        { label: '1080p', width: 1920 },
+        { label: '720p', width: 1280 },
+        { label: '480p', width: 854 },
+    ]
+    let selectedPreset = resolutionPresets[0]
+    let computedWidth = ''
+    let computedHeight = ''
+
+    function parseResolution(res) {
+        if (!res || typeof res !== 'string') return { w: null, h: null }
+        const m = res.match(/(\d+)×(\d+)/)
+        if (!m) return { w: null, h: null }
+        return { w: Number(m[1]), h: Number(m[2]) }
+    }
+
+    function getPrimaryVideo() {
+        // Use first selected video file for preview calculations
+        return selectedFiles.find((f) => f.metadata?.video_codec && f.type !== 'directory') || null
+    }
+
+    function recalcDimensions() {
+        const src = getPrimaryVideo()
+        const { w: srcW, h: srcH } = parseResolution(src?.metadata?.resolution)
+        const targetW = selectedPreset.width || srcW || null
+        if (!targetW || !srcW || !srcH) {
+            computedWidth = targetW ? String(targetW) : '-'
+            computedHeight = srcH ? String(srcH) : '-'
+            return
+        }
+        // Maintain aspect ratio; compute height, round to even as required by most codecs
+        const aspect = srcH / srcW
+        let h = Math.round(targetW * aspect)
+        if (h % 2 === 1) h += 1
+        computedWidth = String(targetW)
+        computedHeight = String(h)
+    }
+
+    $: selectedFiles, recalcDimensions()
+    $: selectedPreset, recalcDimensions()
 
     onMount(async () => {
         try {
@@ -42,6 +87,8 @@
                     cq: cqValue,
                     forceGpu: processorChoice === 'gpu',
                     forceCpu: processorChoice === 'cpu',
+                    targetWidth: selectedPreset.width || null,
+                    autoDelete,
                 }),
             })
 
@@ -69,6 +116,7 @@
     function getCodecName() {
         const processor = getEstimatedProcessor()
         if (processor === 'GPU') {
+            // This is an estimate for display; actual encoder chosen at runtime
             return codec === 'x264' ? 'h264_nvenc' : 'hevc_nvenc'
         } else {
             return codec === 'x264' ? 'libx264' : 'libx265'
@@ -90,6 +138,7 @@
                 >
                     <option value="x264">H.264</option>
                     <option value="x265">H.265</option>
+                    <option value="av1">AV1</option>
                 </select>
             </div>
 
@@ -106,6 +155,34 @@
                 />
             </div>
 
+            <div class="option-group">
+                <label for="resolution">Resolution:</label>
+                <select
+                    id="resolution"
+                    class="form-control"
+                    bind:value={selectedPreset}
+                >
+                    {#each resolutionPresets as opt}
+                        <option value={opt}>{opt.label}</option>
+                    {/each}
+                </select>
+                <div class="dims">
+                    <input
+                        class="form-control"
+                        value={computedWidth}
+                        disabled
+                    />
+                    <span>×</span>
+                    <input
+                        class="form-control"
+                        value={computedHeight}
+                        disabled
+                    />
+                </div>
+            </div>
+        </div>
+
+        <div class="option-row">
             <div class="option-group">
                 <!-- svelte-ignore a11y-label-has-associated-control -->
                 <label>Processor:</label>
@@ -140,6 +217,19 @@
                     </label>
                 </div>
             </div>
+
+            <div
+                class="option-group"
+                style="align-self: center;"
+            >
+                <label>
+                    <input
+                        type="checkbox"
+                        bind:checked={autoDelete}
+                    />
+                    Auto-delete original after success
+                </label>
+            </div>
         </div>
 
         <div class="actions">
@@ -162,13 +252,16 @@
     .encoding-options {
         display: flex;
         flex-direction: column;
+        justify-content: center;
         gap: 1rem;
     }
 
     .option-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
         gap: 1rem;
+        justify-content: space-around;
         align-items: start;
     }
 
@@ -176,12 +269,14 @@
         display: flex;
         flex-direction: column;
         gap: 0.375rem;
+        padding: 0.25rem;
     }
 
     .option-group label {
         font-weight: 500;
         font-size: 0.875rem;
         color: var(--muted);
+        margin-bottom: 0.25rem;
     }
 
     .actions {
@@ -196,5 +291,16 @@
         .option-row {
             grid-template-columns: 1fr;
         }
+    }
+
+    .dims {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .dims input {
+        width: 6rem;
+        text-align: center;
     }
 </style>

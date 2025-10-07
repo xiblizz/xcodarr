@@ -43,6 +43,7 @@ async function initializeTables() {
 			cq INTEGER NOT NULL,
 			using_gpu BOOLEAN NOT NULL DEFAULT 0,
             auto_delete BOOLEAN NOT NULL DEFAULT 0,
+            target_width INTEGER,
 			status TEXT NOT NULL DEFAULT 'queued',
 			progress REAL DEFAULT 0,
 			input_size INTEGER,
@@ -62,6 +63,11 @@ async function initializeTables() {
             console.log("Migrating database: adding 'auto_delete' column to jobs table")
             await database.runAsync(`ALTER TABLE jobs ADD COLUMN auto_delete BOOLEAN NOT NULL DEFAULT 0`)
         }
+        const hasTargetWidth = cols.some((c) => c.name === 'target_width')
+        if (!hasTargetWidth) {
+            console.log("Migrating database: adding 'target_width' column to jobs table")
+            await database.runAsync(`ALTER TABLE jobs ADD COLUMN target_width INTEGER`)
+        }
     } catch (err) {
         console.error('Error ensuring auto_delete column exists:', err)
     }
@@ -76,8 +82,8 @@ export async function createJob(jobData) {
     const lastId = await new Promise((resolve, reject) => {
         database._run(
             `
-            INSERT INTO jobs (filename, input_path, output_path, codec, cq, using_gpu, auto_delete, status, input_size)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO jobs (filename, input_path, output_path, codec, cq, using_gpu, auto_delete, target_width, status, input_size)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			`,
             [
                 jobData.filename,
@@ -87,6 +93,7 @@ export async function createJob(jobData) {
                 jobData.cq,
                 jobData.using_gpu ? 1 : 0,
                 jobData.auto_delete ? 1 : 0,
+                jobData.target_width ?? null,
                 jobData.status || 'queued',
                 jobData.input_size || null,
             ],
@@ -111,6 +118,7 @@ export async function getAllJobs() {
         ...job,
         using_gpu: Boolean(job.using_gpu),
         auto_delete: Boolean(job.auto_delete),
+        target_width: job.target_width === null || job.target_width === undefined ? null : Number(job.target_width),
         progress: job.progress === null || job.progress === undefined ? 0 : Number(job.progress),
     }))
 }
@@ -122,6 +130,7 @@ export async function getJob(id) {
     if (job) {
         job.using_gpu = Boolean(job.using_gpu)
         job.auto_delete = Boolean(job.auto_delete)
+        job.target_width = job.target_width === null || job.target_width === undefined ? null : Number(job.target_width)
         job.progress = job.progress === null || job.progress === undefined ? 0 : Number(job.progress)
     }
 
@@ -171,5 +180,6 @@ export async function getRunningJobs() {
         ...job,
         using_gpu: Boolean(job.using_gpu),
         auto_delete: Boolean(job.auto_delete),
+        target_width: job.target_width === null || job.target_width === undefined ? null : Number(job.target_width),
     }))
 }

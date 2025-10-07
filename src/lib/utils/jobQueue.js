@@ -68,6 +68,7 @@ class JobQueue {
             if (job.using_gpu) {
                 if (gpuInfo.preferred) hwEncoder = gpuInfo.preferred
                 else if (gpuInfo.nvenc) hwEncoder = 'nvenc'
+                else if (gpuInfo.qsv) hwEncoder = 'qsv'
             }
 
             if (job.using_gpu && !hwEncoder) {
@@ -81,6 +82,7 @@ class JobQueue {
                 codec: job.codec,
                 cq: job.cq,
                 hwEncoder,
+                targetWidth: job.target_width || null,
             }
 
             const process = encodeVideo(

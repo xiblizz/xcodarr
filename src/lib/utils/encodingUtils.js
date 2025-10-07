@@ -20,19 +20,34 @@ export async function checkGpuAvailability() {
         ff.on('error', () => resolve(''))
     })
 
-    const hasNvenc = /\b(h264_nvenc|hevc_nvenc)\b/.test(encodersOut)
+    const hasNvenc = /\b(h264_nvenc|hevc_nvenc|av1_nvenc)\b/.test(encodersOut)
+    const hasQsv = /\b(h264_qsv|hevc_qsv)\b/.test(encodersOut)
+    const hasQsvAv1 = /\b(av1_qsv)\b/.test(encodersOut)
     // VideoToolbox encoder names in ffmpeg are h264_videotoolbox and hevc_videotoolbox
-    const hasVideoToolbox = /\b(h264_videotoolbox|hevc_videotoolbox)\b/.test(encodersOut)
+    const hasVideoToolbox = /\b(h264_videotoolbox|hevc_videotoolbox|av1_videotoolbox)\b/.test(encodersOut)
+
+    // Software encoders availability (best-effort)
+    const hasLibAom = /\b(libaom-av1)\b/.test(encodersOut)
+    const hasLibsvt = /\b(librav1e|libsvtav1)\b/.test(encodersOut)
 
     // On macOS prefer VideoToolbox when available
     const isMac = process.platform === 'darwin'
     let preferred = null
     if (isMac && hasVideoToolbox) preferred = 'videotoolbox'
     else if (hasNvenc) preferred = 'nvenc'
+    else if (hasQsv || hasQsvAv1) preferred = 'qsv'
 
     gpuInfoCache = {
         nvenc: hasNvenc,
+        qsv: hasQsv || hasQsvAv1,
         videotoolbox: hasVideoToolbox,
+        av1: {
+            nvenc: /\b(av1_nvenc)\b/.test(encodersOut),
+            qsv: hasQsvAv1,
+            videotoolbox: /\b(av1_videotoolbox)\b/.test(encodersOut),
+            libaom: hasLibAom,
+            libsvt: hasLibsvt,
+        },
         preferred,
     }
 
@@ -48,9 +63,14 @@ export function getCodecSettings(codec, hwEncoder, cq) {
                 // videotoolbox typically uses bitrate/quality options differently; keep simple
                 codecOptions: ['-qscale', cq.toString()],
             }
-        } else {
+        } else if (codec === 'x265') {
             return {
                 videoCodec: 'hevc_videotoolbox',
+                codecOptions: ['-qscale', cq.toString()],
+            }
+        } else if (codec === 'av1') {
+            return {
+                videoCodec: 'av1_videotoolbox',
                 codecOptions: ['-qscale', cq.toString()],
             }
         }
@@ -60,10 +80,32 @@ export function getCodecSettings(codec, hwEncoder, cq) {
                 videoCodec: 'h264_nvenc',
                 codecOptions: ['-cq', cq.toString(), '-preset', 'medium'],
             }
-        } else {
+        } else if (codec === 'x265') {
             return {
                 videoCodec: 'hevc_nvenc',
                 codecOptions: ['-cq', cq.toString(), '-preset', 'medium'],
+            }
+        } else if (codec === 'av1') {
+            return {
+                videoCodec: 'av1_nvenc',
+                codecOptions: ['-cq', cq.toString(), '-preset', 'medium'],
+            }
+        }
+    } else if (hwEncoder === 'qsv') {
+        if (codec === 'x264') {
+            return {
+                videoCodec: 'h264_qsv',
+                codecOptions: ['-global_quality', cq.toString(), '-preset', 'medium'],
+            }
+        } else if (codec === 'x265') {
+            return {
+                videoCodec: 'hevc_qsv',
+                codecOptions: ['-global_quality', cq.toString(), '-preset', 'medium'],
+            }
+        } else if (codec === 'av1') {
+            return {
+                videoCodec: 'av1_qsv',
+                codecOptions: ['-global_quality', cq.toString(), '-preset', 'medium'],
             }
         }
     } else {
@@ -73,10 +115,17 @@ export function getCodecSettings(codec, hwEncoder, cq) {
                 videoCodec: 'libx264',
                 codecOptions: ['-crf', cq.toString(), '-preset', 'medium'],
             }
-        } else {
+        } else if (codec === 'x265') {
             return {
                 videoCodec: 'libx265',
                 codecOptions: ['-crf', cq.toString(), '-preset', 'medium'],
+            }
+        } else if (codec === 'av1') {
+            // Prefer SVT-AV1 if available, otherwise fall back to libaom-av1.
+            // Note: CQ mapping is approximate for AV1 encoders.
+            return {
+                videoCodec: 'libsvtav1',
+                codecOptions: ['-crf', cq.toString(), '-preset', '6'],
             }
         }
     }
@@ -88,17 +137,17 @@ export function generateOutputPath(inputPath, codec) {
     // replace that token with the target codec token (h264 or h265) to avoid
     // double-suffixes. Example: "movie_x264.mkv" -> "movie_h265.mkv" when
     // converting to x265.
-    const targetToken = codec === 'x264' ? 'h264' : 'h265'
+    const targetToken = codec === 'x264' ? 'h264' : codec === 'x265' ? 'h265' : 'av1'
 
     // Replace tokens in a case-insensitive manner, but preserve the rest of the name.
-    const newName = parsed.name.replace(/\b(x?h264|x?h265)\b/i, targetToken)
+    const newName = parsed.name.replace(/\b(x?h264|x?h265|av1)\b/i, targetToken)
 
     if (newName !== parsed.name) {
         return path.join(parsed.dir, `${newName}.mkv`)
     }
 
     // Fallback: append a suffix to indicate the target codec
-    const suffix = codec === 'x264' ? ' [h264]' : ' [h265]'
+    const suffix = codec === 'x264' ? ' [h264]' : codec === 'x265' ? ' [h265]' : ' [av1]'
     return path.join(parsed.dir, `${parsed.name}${suffix}.mkv`)
 }
 
@@ -108,7 +157,7 @@ export function createTempPath(outputPath) {
 }
 
 export function encodeVideo(jobData, onProgress, onComplete) {
-    const { inputPath, outputPath, codec, cq, hwEncoder } = jobData
+    const { inputPath, outputPath, codec, cq, hwEncoder, targetWidth } = jobData
 
     const tempOutputPath = createTempPath(outputPath)
     const { videoCodec, codecOptions } = getCodecSettings(codec, hwEncoder, cq)
@@ -119,6 +168,8 @@ export function encodeVideo(jobData, onProgress, onComplete) {
         inputPath,
         '-map',
         '0',
+        // Optional scaling: constrain by width and compute height automatically (even number)
+        ...(targetWidth && Number(targetWidth) > 0 ? ['-vf', `scale=${Number(targetWidth)}:-2`] : []),
         '-c:v',
         videoCodec,
         ...codecOptions,
